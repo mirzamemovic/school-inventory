@@ -20,7 +20,7 @@ class NeedsAttention
 {
     public const MAX_ROWS = 5;
 
-    /** @return Collection<int, array{label: string, url: string, severity: string}> */
+    /** @return Collection<int, array{label: string, url: string, severity: string, kind: string}> */
     public function rows(): Collection
     {
         return collect()
@@ -34,7 +34,7 @@ class NeedsAttention
             ->take(self::MAX_ROWS);
     }
 
-    /** @return Collection<int, array{label: string, url: string, severity: string}> */
+    /** @return Collection<int, array{label: string, url: string, severity: string, kind: string}> */
     private function staleReports(): Collection
     {
         return Report::query()
@@ -51,10 +51,11 @@ class NeedsAttention
                 ]),
                 'url' => route('admin.reports.show', $report),
                 'severity' => 'broken',
+                'kind' => 'report',
             ]);
     }
 
-    /** @return Collection<int, array{label: string, url: string, severity: string}> */
+    /** @return Collection<int, array{label: string, url: string, severity: string, kind: string}> */
     private function stuckUnderRepair(): Collection
     {
         return Asset::query()
@@ -66,6 +67,7 @@ class NeedsAttention
                 'label' => __('home.attention.stuck_repair', ['item' => $asset->displayName()]),
                 'url' => route('admin.assets.show', $asset),
                 'severity' => 'attention',
+                'kind' => 'repair',
             ]);
     }
 
@@ -74,7 +76,7 @@ class NeedsAttention
      * licence has no expiry date and never appears here — the scope excludes
      * null outright (spec section 5).
      *
-     * @return Collection<int, array{label: string, url: string, severity: string}>
+     * @return Collection<int, array{label: string, url: string, severity: string, kind: string}>
      */
     private function expiringLicenses(): Collection
     {
@@ -90,10 +92,11 @@ class NeedsAttention
                 ]),
                 'url' => route('admin.licenses.show', $license),
                 'severity' => $license->isExpired() ? 'broken' : 'attention',
+                'kind' => 'license',
             ]);
     }
 
-    /** @return Collection<int, array{label: string, url: string, severity: string}> */
+    /** @return Collection<int, array{label: string, url: string, severity: string, kind: string}> */
     private function overdueInspections(): Collection
     {
         return InspectionRecorder::overdue()
@@ -102,11 +105,12 @@ class NeedsAttention
                 'label' => __('home.attention.overdue_inspection', ['item' => $asset->displayName()]),
                 'url' => route('admin.inspections.overdue'),
                 'severity' => 'attention',
+                'kind' => 'inspection',
             ])
             ->values();
     }
 
-    /** @return Collection<int, array{label: string, url: string, severity: string}> */
+    /** @return Collection<int, array{label: string, url: string, severity: string, kind: string}> */
     private function lowSupplies(): Collection
     {
         return Supply::query()
@@ -121,6 +125,7 @@ class NeedsAttention
                 ]),
                 'url' => route('admin.supplies.index'),
                 'severity' => 'attention',
+                'kind' => 'supply',
             ]);
     }
 
@@ -128,7 +133,7 @@ class NeedsAttention
      * Only between May and September. Chasing book debts in November is noise
      * (spec section 8).
      *
-     * @return Collection<int, array{label: string, url: string, severity: string}>
+     * @return Collection<int, array{label: string, url: string, severity: string, kind: string}>
      */
     private function bookDebts(): Collection
     {
@@ -150,10 +155,11 @@ class NeedsAttention
             'label' => trans_choice('home.attention.book_debt', $students, ['count' => $students]),
             'url' => route('admin.books.returns.form'),
             'severity' => 'attention',
+            'kind' => 'books',
         ]]);
     }
 
-    /** @return Collection<int, array{label: string, url: string, severity: string}> */
+    /** @return Collection<int, array{label: string, url: string, severity: string, kind: string}> */
     private function expiringWarranties(): Collection
     {
         return Asset::query()
@@ -170,6 +176,7 @@ class NeedsAttention
                 ]),
                 'url' => route('admin.assets.show', $asset),
                 'severity' => 'attention',
+                'kind' => 'warranty',
             ]);
     }
 }
