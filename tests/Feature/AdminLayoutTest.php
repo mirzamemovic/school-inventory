@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Session;
 
@@ -77,4 +78,24 @@ it('offers a skip link to the main content', function () {
 
 it('is not marked noindex, unlike the public pages', function () {
     expect(renderAdminLayout())->not->toContain('noindex');
+});
+
+it('keeps the right one of the five highlighted on the screens underneath it', function () {
+    // Rooms, People, Licenses and the rest live under Manage; bulk intake and
+    // labels under Assets. The highlight must follow the director there.
+    $admin = User::factory()->create();
+
+    $current = function (string $url) use ($admin): array {
+        $html = $this->actingAs($admin)->get($url)->assertOk()->getContent();
+        preg_match('#<nav[^>]*>(.*?)</nav>#s', $html, $nav);
+        preg_match_all('#href="([^"]+)"\s+aria-current="page"#', $nav[1], $matches);
+
+        return $matches[1];
+    };
+
+    expect($current(route('admin.rooms.index')))->toBe([url('/admin/manage')])
+        ->and($current(route('admin.licenses.index')))->toBe([url('/admin/manage')])
+        ->and($current(route('admin.labels.index')))->toBe([url('/admin/assets')])
+        ->and($current(route('admin.intake.start')))->toBe([url('/admin/assets')])
+        ->and($current(route('admin.home')))->toBe([url('/admin')]);
 });

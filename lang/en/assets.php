@@ -74,9 +74,27 @@ return [
         'inspection_interval_months' => 'Inspect every',
         'notes' => 'Notes',
         'tag' => 'Tag',
-        'years' => ':count years',
+        'years' => '{1} 1 year|[2,*] :count years',
         'months' => '{1} 1 month|[2,*] :count months',
     ],
+
+    'groups_hint' => [
+        'purchase' => 'Optional — fill in later',
+    ],
+
+    'filters' => [
+        'room' => 'All rooms',
+        'category' => 'All categories',
+        'status' => 'Any status',
+    ],
+
+    'nobody' => 'Nobody',
+    'purchase_empty' => 'No purchase details yet. Add them under Edit when the invoice turns up.',
+    'identity_empty' => 'No make, model or serial number yet.',
+    'label_heading' => 'Label',
+    'actions_heading' => 'Change something',
+    'retire_help' => 'It stays in the records with its full history. You can change the status back later if this was a mistake.',
+    'disposal_method' => 'How was it disposed of? (optional)',
 
     'help' => [
         'purchase' => 'Leave these empty if you do not have the invoice in front of you. They can be filled in later.',

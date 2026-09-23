@@ -19,6 +19,8 @@ return [
     'grade' => 'Grade :grade',
 
     'pick_class' => 'Which class?',
+    'show_class' => 'Show class',
+    'issue_count' => '{1} 1 student|[2,*] :count students',
     'no_classes' => 'No classes yet. Add students under Manage, People first.',
     'no_students' => 'Nobody is in that class.',
     'no_titles_for_grade' => 'There are no titles recorded for that grade yet.',

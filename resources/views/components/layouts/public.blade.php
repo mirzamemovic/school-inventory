@@ -21,7 +21,7 @@
     </main>
 
     <footer class="mx-auto w-full max-w-md px-4 pb-8">
-        <p class="text-xs text-grey-500">{{ \App\Models\Setting::schoolName() }}</p>
+        <p class="border-t border-grey-200 pt-4 text-sm text-grey-600">{{ \App\Models\Setting::schoolName() }}</p>
     </footer>
 </body>
 </html>

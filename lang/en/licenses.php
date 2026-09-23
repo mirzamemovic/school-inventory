@@ -74,6 +74,12 @@ return [
         'notes' => 'Notes',
     ],
 
+    'groups' => [
+        'what' => 'What it is',
+        'when' => 'When it runs out',
+        'who' => 'Whose it is',
+    ],
+
     'help' => [
         'expires_at' => 'Leave this empty if the licence never expires.',
         'account_reference' => 'The email or account that owns the subscription. Worth filling in — this is what gets lost when someone leaves.',

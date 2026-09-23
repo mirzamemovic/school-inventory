@@ -9,3 +9,6 @@ htmx.config.includeIndicatorStyles = false;
 
 // Keyboard behaviour for the admin search box. No-ops on pages without one.
 import './search';
+
+// Busy state on the button that was pressed, and no double submissions.
+import './forms';

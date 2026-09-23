@@ -13,6 +13,10 @@ return [
     'inactive' => 'Inactive',
     'none_yet' => 'Nobody yet. Add people one at a time, or import the September list.',
     'search_placeholder' => 'Search people',
+    'filters' => [
+        'type' => 'Everyone',
+        'class' => 'All classes',
+    ],
     'books_out' => '{0} |{1} 1 book out|[2,*] :count books out',
 
     'import' => 'Import from a spreadsheet',

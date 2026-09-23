@@ -13,6 +13,21 @@ return [
         'retired' => 'Retired',
     ],
 
+    'open_queue' => 'Open the report queue',
+
+    // A one-word tag on each needs-attention row, so the list can be scanned
+    // by kind before it is read. Colour carries the urgency; the word carries
+    // the meaning.
+    'kind' => [
+        'report' => 'Report',
+        'repair' => 'Repair',
+        'warranty' => 'Warranty',
+        'license' => 'License',
+        'inspection' => 'Inspection',
+        'supply' => 'Supplies',
+        'books' => 'Books',
+    ],
+
     'attention' => [
         'stale_report' => ':item was reported :time and is still open',
         'stuck_repair' => ':item has been under repair for over a month',

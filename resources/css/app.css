@@ -24,14 +24,17 @@
     --color-white: #ffffff;
     --color-black: #000000;
 
-    /* Greyscale — everything that is not a status */
+    /* Greyscale — everything that is not a status.
+       500 is the lightest grey allowed for text: it clears 4.5:1 on white and
+       on grey-100 chips, which matters in a sunlit corridor. 400 and below are
+       for borders and disabled states only. */
     --color-grey-50: #f7f7f6;
     --color-grey-100: #efefed;
     --color-grey-200: #e2e2df;
     --color-grey-300: #cdcdc9;
     --color-grey-400: #a8a8a3;
-    --color-grey-500: #82827d;
-    --color-grey-600: #63635f;
+    --color-grey-500: #6b6b66;
+    --color-grey-600: #575753;
     --color-grey-700: #4a4a47;
     --color-grey-800: #2e2e2c;
     --color-grey-900: #1a1a19;
@@ -74,6 +77,85 @@
         outline: 2px solid var(--color-navy);
         outline-offset: 2px;
         border-radius: 2px;
+    }
+
+    /* A navy ring on the navy header is no ring at all. */
+    .on-dark :focus-visible {
+        outline-color: var(--color-white);
+    }
+
+    /* Anything waiting on the server looks busy, so it does not get tapped
+       again. forms.js sets aria-busy on the button that was pressed. */
+    [aria-busy='true'] {
+        opacity: 0.7;
+        cursor: progress;
+    }
+}
+
+/*
+| Buttons and links
+|
+| One vocabulary for the whole application. One primary action per screen
+| (spec section 9): navy, solid. Everything else is a secondary button or a
+| text link. Destructive actions are never navy.
+|
+| These live in the components layer so that any utility written next to one
+| (text-sm, w-full, text-grey-700) always wins over the base style.
+*/
+@layer components {
+    .btn-primary {
+        @apply inline-flex min-h-tap items-center justify-center gap-2 rounded bg-navy px-5 text-base font-semibold text-white hover:bg-navy-deep;
+    }
+
+    .btn-secondary {
+        @apply inline-flex min-h-tap items-center justify-center gap-2 rounded border border-grey-300 bg-white px-4 text-base font-semibold text-grey-900 hover:border-grey-400 hover:bg-grey-50;
+    }
+
+    .btn-danger {
+        @apply inline-flex min-h-tap items-center justify-center gap-2 rounded border border-status-broken bg-white px-4 text-base font-semibold text-status-broken hover:bg-status-broken-soft;
+    }
+
+    .link {
+        @apply font-medium text-navy underline decoration-grey-400 underline-offset-2 hover:decoration-current;
+    }
+
+    /* A text link that stands on its own as an action, so it needs a full tap target. */
+    .link-action {
+        @apply inline-flex min-h-tap items-center font-medium text-navy underline decoration-grey-400 underline-offset-2 hover:decoration-current;
+    }
+}
+
+@layer base {
+    /*
+    | Disclosure
+    |
+    | Chrome drops the native triangle as soon as a summary is display:flex,
+    | which left every collapsible group with no sign that it opens. One
+    | chevron, pointing down when closed and up when open.
+    */
+    summary.disclosure {
+        list-style: none;
+    }
+
+    summary.disclosure::-webkit-details-marker {
+        display: none;
+    }
+
+    summary.disclosure::after {
+        content: '';
+        flex: none;
+        width: 0.5rem;
+        height: 0.5rem;
+        margin-left: auto;
+        margin-right: 0.25rem;
+        border-right: 2px solid var(--color-grey-500);
+        border-bottom: 2px solid var(--color-grey-500);
+        transform: translateY(-2px) rotate(45deg);
+        transition: transform 150ms ease-out;
+    }
+
+    details[open] > summary.disclosure::after {
+        transform: translateY(2px) rotate(-135deg);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -129,8 +211,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.25rem;
-        font-size: 0.75rem;
+        /* A full tap target, and close to the 70 × 37 mm shape of the sticker. */
+        min-height: var(--spacing-tap);
+        font-size: 0.875rem;
         font-variant-numeric: tabular-nums;
         cursor: pointer;
         background: var(--color-white);

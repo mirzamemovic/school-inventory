@@ -16,7 +16,11 @@ return [
     'students_disabled' => 'Student reporting is switched off at the moment. Please tell a teacher.',
     'addition_by' => 'Added by :name on :time:',
 
-    'queue_empty' => 'Nothing has been reported. That is the goal state, not a placeholder.',
+    'queue_empty' => [
+        'open' => 'Nothing is waiting. Every report has been picked up or closed.',
+        'in_progress' => 'Nothing is being worked on right now. Reports move here when you press "Working on it".',
+        'closed' => 'No report has been closed yet. Fixed and not-a-problem reports end up here.',
+    ],
     'tabs' => [
         'open' => 'Open',
         'in_progress' => 'In progress',
@@ -29,8 +33,15 @@ return [
     'acknowledged' => 'Marked as being worked on.',
     'resolved' => 'Marked as fixed. The item has gone back to where it was.',
     'dismissed' => 'Closed as not a problem. The item has gone back to where it was.',
-    'note' => 'Note',
+    'note' => 'Note (optional)',
     'note_placeholder' => 'What was done, in one line.',
+    'note_help' => 'Saved with the report when you press Fixed or Not a problem.',
+    'close_heading' => 'Close this report',
+    'close_help' => 'Both put the item back to the state it was in before it was reported.',
+    'being_worked_on' => 'Marked as being worked on :time.',
+    'resolution_heading' => 'What was done',
+    'the_item' => 'The item',
+    'no_description' => 'No description was given.',
     'different_state' => 'Set a different state',
     'different_state_help' => 'Only needed for a partial repair, where the item still needs attention.',
 
@@ -40,7 +51,7 @@ return [
     'not_seen_yet' => 'Not seen yet',
     'still_open' => 'Still open',
     'fixed_after' => 'Fixed after :time',
-    'past_reports' => 'This item has been reported before',
+    'past_reports' => 'Earlier reports for this item',
     'no_past_reports' => 'This is the first report for this item.',
     'photo_alt' => 'Photo sent with the report',
     'reference' => 'Reference',
@@ -68,6 +79,7 @@ return [
         'missing' => 'It is missing',
     ],
 
+    'your_name' => 'Your name',
     'what_is_wrong' => 'What is wrong?',
     'anything_else' => 'Anything else? (optional)',
     'add_photo' => 'Add a photo (optional)',
