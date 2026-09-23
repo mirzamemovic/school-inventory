@@ -5,10 +5,10 @@
 --}}
 <x-layouts.public :title="__('books.class_debts_heading', ['class' => $class])">
     <h1 class="text-2xl font-bold tracking-tight">{{ __('books.class_debts_heading', ['class' => $class]) }}</h1>
-    <p class="mt-1 text-sm text-grey-600 tabular-nums">{{ __('books.class_debts_year', ['year' => $academicYear]) }}</p>
+    <p class="mt-1 text-grey-600 tabular-nums">{{ __('books.class_debts_year', ['year' => $academicYear]) }}</p>
 
     @if ($students->isEmpty())
-        <p class="mt-6 rounded border border-status-ok-soft bg-status-ok-soft p-4 font-medium text-status-ok">
+        <p class="mt-6 rounded border border-status-ok-soft bg-status-ok-soft px-4 py-3 font-semibold text-status-ok">
             {{ __('books.class_debts_none') }}
         </p>
     @else
@@ -21,7 +21,7 @@
                             <li class="flex flex-wrap items-baseline gap-2 text-sm">
                                 <span class="flex-1">{{ $loan->title->title }}</span>
                                 @if ($loan->isOverdue())
-                                    <span class="rounded bg-status-broken-soft px-1.5 py-0.5 text-xs font-semibold text-status-broken">
+                                    <span class="rounded bg-status-broken-soft px-2 py-0.5 text-xs font-semibold text-status-broken">
                                         {{ __('books.overdue') }}
                                     </span>
                                 @endif
