@@ -3,16 +3,15 @@
     pen. So this is a plain sheet with a tick box per line and room to write in
     anything the system does not know about (spec section 8).
 --}}
-<x-layouts.admin>
+<x-layouts.admin :back="route('admin.rooms.show', $room)" :back-label="$room->name">
     <div class="print:hidden">
-        <button type="button" onclick="window.print()"
-                class="mb-6 inline-flex min-h-tap items-center rounded bg-navy px-4 font-semibold text-white hover:bg-navy-deep">
+        <button type="button" onclick="window.print()" class="btn-primary mb-6">
             {{ __('common.print') }}
         </button>
     </div>
 
     <h1 class="text-2xl font-bold tracking-tight">{{ __('rooms.sheet_heading', ['room' => $room->name]) }}</h1>
-    <p class="mt-1 text-sm text-grey-600">{{ __('rooms.sheet_help') }}</p>
+    <p class="mt-1 text-sm text-grey-700">{{ __('rooms.sheet_help') }}</p>
 
     <table class="mt-6 w-full border-collapse text-sm">
         <thead>
@@ -38,7 +37,7 @@
             @foreach ($contents as $content)
                 <tr class="border-b border-grey-300">
                     <td class="py-2 pr-3">{{ $content->item_name }}</td>
-                    <td class="py-2 pr-3 text-xs text-grey-500">—</td>
+                    <td class="py-2 pr-3 text-xs text-grey-600">—</td>
                     <td class="py-2 pr-3 text-right tabular-nums">{{ $content->quantity }}</td>
                     <td class="py-2 pr-3 text-center">☐</td>
                     <td class="py-2"></td>

@@ -3,55 +3,58 @@
     HTMX can swap just this row rather than reloading the page.
 --}}
 <li id="supply-{{ $supply->id }}"
-    class="flex min-h-tap flex-wrap items-center gap-x-3 gap-y-1 p-3 {{ $supply->isLow() ? 'bg-status-attention-soft' : '' }}">
-    <span class="min-w-0 flex-1">
-        <span class="block font-medium">{{ $supply->name }}</span>
-        <span class="block text-sm text-grey-500">
-            {{ collect([$supply->room?->name, $supply->storage_location])->filter()->join(' · ') }}
+    class="px-3 py-3 sm:px-4 {{ $supply->isLow() ? 'bg-status-attention-soft' : '' }}">
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span class="min-w-0 flex-1 basis-52">
+            <span class="flex flex-wrap items-center gap-2">
+                <span class="font-semibold">{{ $supply->name }}</span>
+                @if ($supply->isLow())
+                    {{-- Solid, so it still reads on a row that is already amber. --}}
+                    <span class="rounded bg-status-attention px-2 py-0.5 text-xs font-semibold text-white">
+                        {{ __('supplies.low') }}
+                    </span>
+                @endif
+            </span>
+            <span class="block text-sm text-grey-700">
+                {{ collect([$supply->room?->name, $supply->storage_location, __('supplies.minimum', ['count' => $supply->minimum_level])])->filter()->join(' · ') }}
+            </span>
         </span>
-    </span>
 
-    @if ($supply->isLow())
-        <span class="rounded bg-status-attention-soft px-2 py-0.5 text-xs font-semibold text-status-attention">
-            {{ __('supplies.low') }}
+        <span class="flex items-center gap-2">
+            <form method="POST" action="{{ route('admin.supplies.adjust', $supply) }}"
+                  hx-post="{{ route('admin.supplies.adjust', $supply) }}"
+                  hx-target="#supply-{{ $supply->id }}"
+                  hx-swap="outerHTML">
+                @csrf
+                <input type="hidden" name="by" value="-1">
+                <button type="submit" class="btn-secondary min-w-tap px-0 text-xl"
+                        aria-label="{{ __('supplies.take_one') }} — {{ $supply->name }}">
+                    <span aria-hidden="true">−</span>
+                    <span class="htmx-indicator sr-only">{{ __('common.working') }}</span>
+                </button>
+            </form>
+
+            <span class="min-w-16 text-center leading-tight">
+                <span class="block text-xl font-bold tabular-nums">{{ $supply->quantity }}</span>
+                <span class="block text-xs text-grey-700">{{ $supply->unit->label() }}</span>
+            </span>
+
+            <form method="POST" action="{{ route('admin.supplies.adjust', $supply) }}"
+                  hx-post="{{ route('admin.supplies.adjust', $supply) }}"
+                  hx-target="#supply-{{ $supply->id }}"
+                  hx-swap="outerHTML">
+                @csrf
+                <input type="hidden" name="by" value="1">
+                <button type="submit" class="btn-secondary min-w-tap px-0 text-xl"
+                        aria-label="{{ __('supplies.add_one') }} — {{ $supply->name }}">
+                    <span aria-hidden="true">+</span>
+                    <span class="htmx-indicator sr-only">{{ __('common.working') }}</span>
+                </button>
+            </form>
         </span>
-    @endif
 
-    <span class="text-xs text-grey-500 tabular-nums">{{ __('supplies.minimum', ['count' => $supply->minimum_level]) }}</span>
-
-    <span class="flex items-center gap-1">
-        <form method="POST" action="{{ route('admin.supplies.adjust', $supply) }}"
-              hx-post="{{ route('admin.supplies.adjust', $supply) }}"
-              hx-target="#supply-{{ $supply->id }}"
-              hx-swap="outerHTML">
-            @csrf
-            <input type="hidden" name="by" value="-1">
-            <button type="submit" class="min-h-tap min-w-tap rounded border border-grey-300 bg-white font-semibold"
-                    aria-label="{{ __('supplies.take_one') }} — {{ $supply->name }}">
-                −
-                <span class="htmx-indicator sr-only">{{ __('common.working') }}</span>
-            </button>
-        </form>
-
-        <span class="min-w-16 text-center text-lg font-bold tabular-nums">{{ $supply->quantity }}</span>
-
-        <form method="POST" action="{{ route('admin.supplies.adjust', $supply) }}"
-              hx-post="{{ route('admin.supplies.adjust', $supply) }}"
-              hx-target="#supply-{{ $supply->id }}"
-              hx-swap="outerHTML">
-            @csrf
-            <input type="hidden" name="by" value="1">
-            <button type="submit" class="min-h-tap min-w-tap rounded border border-grey-300 bg-white font-semibold"
-                    aria-label="{{ __('supplies.add_one') }} — {{ $supply->name }}">
-                +
-                <span class="htmx-indicator sr-only">{{ __('common.working') }}</span>
-            </button>
-        </form>
-    </span>
-
-    <span class="text-xs text-grey-500">{{ $supply->unit->label() }}</span>
-
-    <a href="{{ route('admin.supplies.edit', $supply) }}" class="min-h-tap text-sm text-navy underline">
-        {{ __('common.edit') }}
-    </a>
+        <a href="{{ route('admin.supplies.edit', $supply) }}" class="link-action text-sm">
+            {{ __('common.edit') }}
+        </a>
+    </div>
 </li>

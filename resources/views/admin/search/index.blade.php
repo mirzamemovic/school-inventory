@@ -1,7 +1,7 @@
 <x-layouts.admin :title="__('search.heading')">
     <x-flash />
 
-    <form method="GET" action="{{ route('admin.search') }}" class="mb-4 max-w-xl">
+    <form method="GET" action="{{ route('admin.search') }}" class="mb-4 max-w-xl" role="search">
         <label for="q" class="sr-only">{{ __('search.label') }}</label>
         <x-input name="q" id="q" type="search" :value="$term"
                  :placeholder="__('search.placeholder_long')" autofocus />

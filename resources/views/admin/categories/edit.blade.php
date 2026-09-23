@@ -1,5 +1,5 @@
 @php $prefixFrozen = $category->assets()->exists(); @endphp
-<x-layouts.admin :title="__('categories.edit')">
+<x-layouts.admin :title="__('categories.edit')" :back="route('admin.categories.index')" :back-label="__('categories.title')">
     <x-flash />
 
     <form method="POST" action="{{ route('admin.categories.update', $category) }}" class="max-w-md">
@@ -12,26 +12,26 @@
 
         <x-field :label="__('categories.labels.prefix')" name="prefix"
                  :help="$prefixFrozen ? __('categories.help.prefix_frozen') : __('categories.help.prefix')" required>
-            <x-input name="prefix" :value="old('prefix', $category->prefix)" maxlength="8"
-                     :readonly="$prefixFrozen" required />
+            <x-input name="prefix" :value="old('prefix', $category->prefix)" maxlength="8" autocapitalize="characters" spellcheck="false"
+                     class="max-w-40 font-mono" :readonly="$prefixFrozen" required />
         </x-field>
 
-        <label class="mb-4 flex min-h-tap items-center gap-2 text-sm font-medium text-grey-700">
+        <label class="mb-2 flex min-h-tap cursor-pointer items-center gap-3 text-base font-semibold text-grey-800">
             <input type="checkbox" name="needs_inspection_default" value="1" class="size-5 rounded border-grey-300"
                    @checked(old('needs_inspection_default', $category->needs_inspection_default))>
             {{ __('categories.labels.needs_inspection_default') }}
         </label>
 
         <x-field :label="__('categories.labels.default_inspection_interval_months')" name="default_inspection_interval_months">
-            <x-input name="default_inspection_interval_months" type="number" min="1" max="120"
+            <x-input name="default_inspection_interval_months" type="number" min="1" max="120" inputmode="numeric" class="max-w-32"
                      :value="old('default_inspection_interval_months', $category->default_inspection_interval_months)" />
         </x-field>
 
-        <div class="flex items-center gap-4">
-            <button type="submit" class="inline-flex min-h-tap items-center rounded bg-navy px-5 font-semibold text-white hover:bg-navy-deep">
+        <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2">
+            <button type="submit" class="btn-primary" data-busy-text="{{ __('common.saving') }}">
                 {{ __('common.save_changes') }}
             </button>
-            <a href="{{ route('admin.categories.index') }}" class="text-sm text-grey-600 underline">{{ __('common.cancel') }}</a>
+            <a href="{{ route('admin.categories.index') }}" class="link-action text-grey-700">{{ __('common.cancel') }}</a>
         </div>
     </form>
 </x-layouts.admin>

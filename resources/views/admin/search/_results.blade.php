@@ -18,7 +18,7 @@
     <div class="divide-y divide-grey-200">
         @foreach ($groups as $group)
             <section>
-                <h2 class="bg-grey-50 px-3 py-1.5 text-xs font-semibold tracking-wide text-grey-500 uppercase">
+                <h2 class="bg-grey-50 px-3 py-1.5 text-xs font-semibold tracking-wide text-grey-600 uppercase">
                     {{ $group['heading'] }}
                 </h2>
 
@@ -27,7 +27,7 @@
                         <li>
                             <a href="{{ $item['url'] }}"
                                data-search-result
-                               class="flex min-h-tap flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-2 hover:bg-grey-50 focus:bg-grey-100 focus:outline-none">
+                               class="flex min-h-tap flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-2 hover:bg-grey-50 focus:bg-grey-100 focus-visible:outline-offset-[-2px]">
                                 <span class="min-w-0 flex-1">
                                     <span class="block truncate text-sm font-medium">{{ $item['title'] }}</span>
                                     @if ($item['subtitle'])

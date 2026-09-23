@@ -1,55 +1,62 @@
-<x-layouts.admin :title="__('categories.title')">
+<x-layouts.admin :title="__('categories.title')" :back="route('admin.manage')" :back-label="__('manage.title')">
     <x-flash />
 
-    <ul class="mb-6 divide-y divide-grey-200 rounded border border-grey-200 bg-white">
+    <ul class="mb-8 divide-y divide-grey-200 rounded border border-grey-200 bg-white">
         @foreach ($categories as $category)
-            <li class="flex min-h-tap flex-wrap items-center gap-x-3 gap-y-1 p-3">
-                <span class="min-w-0 flex-1 font-medium">{{ $category->name }}</span>
-                <span class="font-mono text-xs text-grey-500">{{ $category->prefix }}</span>
-
-                @if ($category->needs_inspection_default)
-                    <span class="rounded bg-status-attention-soft px-2 py-0.5 text-xs font-semibold text-status-attention">
-                        {{ trans_choice('assets.labels.months', $category->default_inspection_interval_months ?? 0, ['count' => $category->default_inspection_interval_months]) }}
-                    </span>
-                @endif
-
-                <span class="text-sm text-grey-600 tabular-nums">
-                    {{ trans_choice('categories.asset_count', $category->assets_count, ['count' => $category->assets_count]) }}
+            <li class="flex flex-wrap items-center gap-x-5 gap-y-1 px-3 py-2.5 sm:px-4">
+                <span class="min-w-0 flex-1 basis-48">
+                    <span class="block font-semibold">{{ $category->name }}</span>
+                    <span class="block font-mono text-xs text-grey-700">{{ $category->prefix }}</span>
                 </span>
 
-                <a href="{{ route('admin.categories.edit', $category) }}" class="min-h-tap text-sm text-navy underline">
+                <span class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-grey-700 tabular-nums">
+                    @if ($category->needs_inspection_default)
+                        <span>
+                            {{ __('assets.labels.inspection_interval_months') }}
+                            {{ trans_choice('assets.labels.months', $category->default_inspection_interval_months ?? 0, ['count' => $category->default_inspection_interval_months]) }}
+                        </span>
+                    @endif
+                    <span>{{ trans_choice('categories.asset_count', $category->assets_count, ['count' => $category->assets_count]) }}</span>
+                </span>
+
+                <a href="{{ route('admin.categories.edit', $category) }}" class="link-action text-sm">
                     {{ __('common.edit') }}
                 </a>
             </li>
         @endforeach
     </ul>
 
-    <h2 class="mb-3 text-lg font-bold tracking-tight">{{ __('categories.add') }}</h2>
+    {{-- Schools always add a category nobody predicted, but not often. --}}
+    <details class="max-w-md rounded border border-grey-200 bg-white" @if ($errors->any()) open @endif>
+        <summary class="disclosure flex min-h-tap cursor-pointer items-center px-4 py-2 text-lg font-bold">
+            {{ __('categories.add') }}
+        </summary>
 
-    <form method="POST" action="{{ route('admin.categories.store') }}" class="max-w-md">
-        @csrf
+        <form method="POST" action="{{ route('admin.categories.store') }}" class="border-t border-grey-200 p-4">
+            @csrf
 
-        <x-field :label="__('categories.labels.name')" name="name" required>
-            <x-input name="name" :value="old('name')" required />
-        </x-field>
+            <x-field :label="__('categories.labels.name')" name="name" required>
+                <x-input name="name" :value="old('name')" required />
+            </x-field>
 
-        <x-field :label="__('categories.labels.prefix')" name="prefix" :help="__('categories.help.prefix')" required>
-            <x-input name="prefix" :value="old('prefix')" maxlength="8" required />
-        </x-field>
+            <x-field :label="__('categories.labels.prefix')" name="prefix" :help="__('categories.help.prefix')" required>
+                <x-input name="prefix" :value="old('prefix')" maxlength="8" autocapitalize="characters" spellcheck="false" class="max-w-40 font-mono" required />
+            </x-field>
 
-        <label class="mb-4 flex min-h-tap items-center gap-2 text-sm font-medium text-grey-700">
-            <input type="checkbox" name="needs_inspection_default" value="1" class="size-5 rounded border-grey-300"
-                   @checked(old('needs_inspection_default'))>
-            {{ __('categories.labels.needs_inspection_default') }}
-        </label>
+            <label class="mb-2 flex min-h-tap cursor-pointer items-center gap-3 text-base font-semibold text-grey-800">
+                <input type="checkbox" name="needs_inspection_default" value="1" class="size-5 rounded border-grey-300"
+                       @checked(old('needs_inspection_default'))>
+                {{ __('categories.labels.needs_inspection_default') }}
+            </label>
 
-        <x-field :label="__('categories.labels.default_inspection_interval_months')" name="default_inspection_interval_months">
-            <x-input name="default_inspection_interval_months" type="number" min="1" max="120"
-                     :value="old('default_inspection_interval_months')" />
-        </x-field>
+            <x-field :label="__('categories.labels.default_inspection_interval_months')" name="default_inspection_interval_months">
+                <x-input name="default_inspection_interval_months" type="number" min="1" max="120" inputmode="numeric" class="max-w-32"
+                         :value="old('default_inspection_interval_months')" />
+            </x-field>
 
-        <button type="submit" class="inline-flex min-h-tap items-center rounded bg-navy px-5 font-semibold text-white hover:bg-navy-deep">
-            {{ __('common.add') }}
-        </button>
-    </form>
+            <button type="submit" class="btn-secondary" data-busy-text="{{ __('common.saving') }}">
+                {{ __('categories.add') }}
+            </button>
+        </form>
+    </details>
 </x-layouts.admin>
