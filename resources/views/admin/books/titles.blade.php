@@ -1,41 +1,50 @@
 <x-layouts.admin :title="__('books.title')">
     <x-flash />
 
-    <div class="mb-4 flex flex-wrap items-center gap-4">
-        <a href="{{ route('admin.books.issue.form') }}"
-           class="inline-flex min-h-tap items-center rounded bg-navy px-4 font-semibold text-white hover:bg-navy-deep">
+    <div class="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <a href="{{ route('admin.books.issue.form') }}" class="btn-primary">
             {{ __('books.issue') }}
         </a>
-        <a href="{{ route('admin.books.returns.form') }}" class="text-sm font-medium text-navy underline">
+        <a href="{{ route('admin.books.returns.form') }}" class="link-action">
             {{ __('books.returns') }}
         </a>
     </div>
 
-    <form method="GET" action="{{ route('admin.books.titles') }}" class="mb-4 max-w-md">
+    <form method="GET" action="{{ route('admin.books.titles') }}" class="mb-4 max-w-md" role="search">
         <label for="q" class="sr-only">{{ __('books.search_placeholder') }}</label>
         <x-input name="q" id="q" type="search" :value="request('q')" :placeholder="__('books.search_placeholder')" autofocus />
     </form>
 
     @if ($titles->isEmpty())
-        <x-empty-state :message="__('books.no_titles')" />
+        <x-empty-state class="mb-8" :message="request('q') ? __('assets.no_matches') : __('books.no_titles')" />
     @else
         <ul class="mb-8 divide-y divide-grey-200 rounded border border-grey-200 bg-white">
             @foreach ($titles as $title)
-                <li class="flex min-h-tap flex-wrap items-center gap-x-4 gap-y-1 p-3">
-                    <span class="min-w-0 flex-1">
-                        <span class="block font-medium">{{ $title->title }}</span>
-                        <span class="block text-sm text-grey-500">
+                @php $available = max(0, $title->total_copies - $title->copies_out_count); @endphp
+                <li class="flex flex-wrap items-center gap-x-6 gap-y-2 px-3 py-3 sm:px-4">
+                    <span class="min-w-0 flex-1 basis-56">
+                        <span class="block font-semibold">{{ $title->title }}</span>
+                        <span class="block text-sm text-grey-600">
                             {{ collect([$title->subject, __('books.grade', ['grade' => $title->grade])])->filter()->join(' · ') }}
                         </span>
                     </span>
 
-                    <span class="text-sm tabular-nums text-grey-600">
-                        {{ __('books.owned') }} {{ $title->total_copies }}
-                        · {{ __('books.out') }} {{ $title->copies_out_count }}
-                        · {{ __('books.available') }} {{ max(0, $title->total_copies - $title->copies_out_count) }}
-                    </span>
+                    <dl class="flex gap-5 text-sm tabular-nums">
+                        <div>
+                            <dt class="text-grey-600">{{ __('books.owned') }}</dt>
+                            <dd class="font-semibold">{{ $title->total_copies }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-grey-600">{{ __('books.out') }}</dt>
+                            <dd class="font-semibold">{{ $title->copies_out_count }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-grey-600">{{ __('books.available') }}</dt>
+                            <dd class="font-semibold">{{ $available }}</dd>
+                        </div>
+                    </dl>
 
-                    <a href="{{ route('admin.books.titles.edit', $title) }}" class="min-h-tap text-sm text-navy underline">
+                    <a href="{{ route('admin.books.titles.edit', $title) }}" class="link-action text-sm">
                         {{ __('common.edit') }}
                     </a>
                 </li>
@@ -43,14 +52,20 @@
         </ul>
     @endif
 
-    <h2 class="mb-3 text-lg font-bold tracking-tight">{{ __('books.add_title') }}</h2>
+    {{-- Adding a title is occasional; the list is what this page is for. It
+         opens by itself when there is nothing yet or the last attempt failed. --}}
+    <details class="max-w-md rounded border border-grey-200 bg-white" @if ($titles->isEmpty() && ! request('q') || $errors->any()) open @endif>
+        <summary class="disclosure flex min-h-tap cursor-pointer items-center px-4 py-2 text-lg font-bold">
+            {{ __('books.add_title') }}
+        </summary>
 
-    <form method="POST" action="{{ route('admin.books.titles.store') }}" class="max-w-md">
-        @csrf
-        @include('admin.books._title-fields', ['title' => new \App\Models\BookTitle])
+        <form method="POST" action="{{ route('admin.books.titles.store') }}" class="border-t border-grey-200 p-4">
+            @csrf
+            @include('admin.books._title-fields', ['title' => new \App\Models\BookTitle])
 
-        <button type="submit" class="inline-flex min-h-tap items-center rounded bg-navy px-5 font-semibold text-white hover:bg-navy-deep">
-            {{ __('common.add') }}
-        </button>
-    </form>
+            <button type="submit" class="btn-secondary" data-busy-text="{{ __('common.saving') }}">
+                {{ __('books.add_title') }}
+            </button>
+        </form>
+    </details>
 </x-layouts.admin>
