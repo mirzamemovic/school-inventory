@@ -144,6 +144,27 @@ it('does the same when a report is closed as not a problem', function () {
         ->and(AssetEvent::query()->where('action', EventAction::REPORT_DISMISSED)->exists())->toBeTrue();
 });
 
+it('keeps the note when a report is closed as not a problem', function () {
+    // One note box sits above both closing buttons, so the page must send it
+    // with whichever is pressed — not only with Fixed.
+    $report = Report::factory()->create();
+
+    $html = $this->actingAs($this->admin)->get(route('admin.reports.show', $report))->assertOk()->getContent();
+
+    preg_match('#<form method="POST" action="'.preg_quote(route('admin.reports.resolve', $report), '#').'".*?</form>#s', $html, $form);
+
+    expect($form[0] ?? '')
+        ->toContain('name="resolution_note"')
+        ->toContain('formaction="'.route('admin.reports.dismiss', $report).'"');
+
+    $this->actingAs($this->admin)->post(route('admin.reports.dismiss', $report), [
+        'resolution_note' => 'Cable was unplugged, nothing broken.',
+    ]);
+
+    expect($report->fresh()->status)->toBe(ReportStatus::Dismissed)
+        ->and($report->fresh()->resolution_note)->toBe('Cable was unplugged, nothing broken.');
+});
+
 it('leaves a newer decision alone rather than clobbering it with a stale snapshot', function () {
     // Something else moved the asset on during the repair, so the snapshot is
     // no longer the best information available (spec section 7B).
