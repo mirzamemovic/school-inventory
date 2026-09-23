@@ -1,0 +1,4 @@
+# Nothing in this application should be indexed. The public pages are an
+# inventory of a school building and the rest needs a password.
+User-agent: *
+Disallow: /

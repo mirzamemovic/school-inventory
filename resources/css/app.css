@@ -1,0 +1,193 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/*
+| Design tokens (spec section 9)
+|
+| The only colour in this application is status colour. Everything else is
+| greyscale plus one dark ink navy for primary actions. The default Tailwind
+| palette is cleared on purpose: if `bg-blue-500` does not exist, nobody can
+| accidentally make colour decorative, and colour keeps meaning something.
+*/
+@theme static {
+    --color-*: initial;
+    --font-*: initial;
+
+    /* System stack only. No web fonts, ever. */
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+    --color-transparent: transparent;
+    --color-current: currentColor;
+    --color-white: #ffffff;
+    --color-black: #000000;
+
+    /* Greyscale — everything that is not a status */
+    --color-grey-50: #f7f7f6;
+    --color-grey-100: #efefed;
+    --color-grey-200: #e2e2df;
+    --color-grey-300: #cdcdc9;
+    --color-grey-400: #a8a8a3;
+    --color-grey-500: #82827d;
+    --color-grey-600: #63635f;
+    --color-grey-700: #4a4a47;
+    --color-grey-800: #2e2e2c;
+    --color-grey-900: #1a1a19;
+
+    /* The one non-status colour: primary actions and the admin header */
+    --color-navy: #1b2a4a;
+    --color-navy-deep: #101a2e;
+
+    /* Status. Green working, amber attention, red broken or overdue,
+       grey retired or inactive. Solid values are text-on-soft safe. */
+    --color-status-ok: #1f7a3f;
+    --color-status-ok-soft: #e6f2ea;
+    --color-status-attention: #8a5a06;
+    --color-status-attention-soft: #fdf1dc;
+    --color-status-broken: #a4232b;
+    --color-status-broken-soft: #fbe9e9;
+    --color-status-inactive: #63635f;
+    --color-status-inactive-soft: #efefed;
+
+    /* 44px minimum tap target — min-h-tap / min-w-tap / p-tap */
+    --spacing-tap: 2.75rem;
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        background-color: var(--color-grey-50);
+        color: var(--color-grey-900);
+        font-family: var(--font-sans);
+        /* Tabular figures everywhere so quantities, counts and dates align. */
+        font-variant-numeric: tabular-nums;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Keyboard focus must always be visible. */
+    :focus-visible {
+        outline: 2px solid var(--color-navy);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}
+
+/*
+| HTMX loading states (spec section 9, rule 7)
+|
+| A button that appears to do nothing gets tapped four times. Anything marked
+| .htmx-indicator fades in while its request is in flight, and any element
+| making a request is visibly busy.
+*/
+@layer components {
+    .htmx-indicator {
+        opacity: 0;
+        transition: opacity 120ms linear;
+    }
+
+    .htmx-request .htmx-indicator,
+    .htmx-request.htmx-indicator {
+        opacity: 1;
+    }
+
+    .htmx-request button,
+    button.htmx-request,
+    .htmx-request [type='submit'],
+    [type='submit'].htmx-request {
+        opacity: 0.65;
+        cursor: progress;
+    }
+}
+
+/*
+| Sheet position picker (spec section 6.3)
+|
+| Cells before the chosen start are greyed out, so a part-used sticker sheet can
+| be fed back through the printer. The greying uses :has(), which older Android
+| browsers ignore — there the chosen cell still highlights, which is enough.
+*/
+@layer components {
+    .sheet-cell {
+        border: 1px solid var(--color-grey-300);
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.25rem;
+        font-size: 0.75rem;
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+        background: var(--color-white);
+    }
+
+    .sheet-cell:has(input:checked) {
+        border-color: var(--color-navy);
+        background: var(--color-navy);
+        color: var(--color-white);
+        font-weight: 600;
+    }
+
+    .sheet-cell:has(~ .sheet-cell input:checked) {
+        background: var(--color-grey-100);
+        color: var(--color-grey-400);
+        border-style: dashed;
+    }
+
+    .sheet-cell:has(input:focus-visible) {
+        outline: 2px solid var(--color-navy);
+        outline-offset: 2px;
+    }
+}
+
+/*
+| Print
+|
+| Two things get printed: the room inventory sheet for the annual count and the
+| class book-debt list. Both are walked around with a pen, so they need ink on
+| paper and nothing else.
+*/
+@media print {
+    body {
+        background: #ffffff;
+        color: #000000;
+    }
+
+    header,
+    nav,
+    footer,
+    .print\:hidden {
+        display: none !important;
+    }
+
+    main {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    a {
+        text-decoration: none;
+        color: #000000;
+    }
+
+    /* Keep a table row whole rather than splitting it over a page break. */
+    tr,
+    li {
+        break-inside: avoid;
+    }
+}
