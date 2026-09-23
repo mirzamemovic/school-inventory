@@ -1,11 +1,13 @@
-<x-layouts.admin :title="__('intake.heading')">
+<x-layouts.admin :title="__('intake.heading')" :back="route('admin.intake.start')" :back-label="__('intake.title')">
+    <x-slot:subtitle>
+        <p class="font-mono text-2xl font-bold tracking-wide text-grey-900">{{ $asset->asset_tag }}</p>
+    </x-slot:subtitle>
+
     <x-flash />
 
     {{-- Four fields and one button. Nothing here may grow: this form is filled
          in while standing up, holding a phone, in front of the actual object. --}}
     <div class="max-w-md">
-        <p class="mb-4 font-mono text-lg font-semibold">{{ $asset->asset_tag }}</p>
-
         <form method="POST" action="{{ route('admin.intake.update', $asset) }}">
             @csrf
             @method('PUT')
@@ -29,7 +31,7 @@
                           :selected="\App\Enums\AssetCondition::Good->value" />
             </x-field>
 
-            <button type="submit" class="inline-flex min-h-tap w-full items-center justify-center rounded bg-navy px-5 text-base font-semibold text-white hover:bg-navy-deep">
+            <button type="submit" class="btn-primary mt-1 w-full text-lg" data-busy-text="{{ __('common.saving') }}">
                 {{ __('intake.save_and_next') }}
             </button>
         </form>
