@@ -65,6 +65,21 @@ final class EventAction
 
     public const DATA_RETENTION_ENFORCED = 'data.retention_enforced';
 
+    /*
+     * Exporting records that name people is itself a processing event
+     * (spec section 16). The event says who, which dataset and how many rows,
+     * never the contents.
+     */
+    public const DATA_EXPORTED = 'data.exported';
+
+    /*
+     * The device block list is the answer to the most likely attack, so who
+     * blocked and unblocked what is kept like everything else.
+     */
+    public const DEVICE_BLOCKED = 'device.blocked';
+
+    public const DEVICE_UNBLOCKED = 'device.unblocked';
+
     /** @return array<int, string> */
     public static function all(): array
     {

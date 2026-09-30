@@ -31,6 +31,7 @@ return [
         'verified' => 'Verified',
         'subject' => 'Item',
         'details' => 'Details',
+        'footer' => 'Exported :date by :name. This file contains personal data: keep it only as long as it is needed, then delete it, as the retention rules in RETENTION.md require.',
     ],
     'ago' => ':time ago',
 
@@ -79,6 +80,11 @@ return [
         ],
         'data' => [
             'retention_enforced' => ':actor removed records that had reached the end of their retention period',
+            'exported' => ':actor downloaded a copy of the records',
+        ],
+        'device' => [
+            'blocked' => ':actor blocked a device from sending anything',
+            'unblocked' => ':actor let a blocked device send again',
         ],
         'licence' => [
             'created' => ':actor added this license',

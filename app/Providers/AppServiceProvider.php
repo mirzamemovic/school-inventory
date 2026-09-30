@@ -8,6 +8,7 @@ use App\Models\License;
 use App\Models\Person;
 use App\Models\Report;
 use App\Models\Supply;
+use App\Models\User;
 use App\Services\DeviceIdentity;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -38,6 +39,9 @@ class AppServiceProvider extends ServiceProvider
             'supply' => Supply::class,
             'inspection' => Inspection::class,
             'licence' => License::class,
+            // For what an admin does to the system rather than to one record:
+            // exporting data, blocking a device.
+            'user' => User::class,
         ]);
 
         // cPanel provides free Let's Encrypt; there is no reason to serve

