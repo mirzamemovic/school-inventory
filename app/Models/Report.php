@@ -26,6 +26,13 @@ class Report extends Model
 {
     use HasFactory;
 
+    /**
+     * The description is a TEXT column: 65,535 bytes on MySQL, which runs in
+     * strict mode and refuses anything longer. Additions stop comfortably
+     * short of that.
+     */
+    public const MAX_DESCRIPTION_BYTES = 60_000;
+
     protected function casts(): array
     {
         return [

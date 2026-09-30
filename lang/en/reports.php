@@ -12,6 +12,7 @@ return [
     'already_reported' => 'Reported :time — being looked at.',
     'thank_you' => 'Reported. The director has been notified. You will hear when it is fixed.',
     'thank_you_addition' => 'Added to the report that was already open. Thank you.',
+    'report_full' => 'This report already holds a lot of information, so nothing more was added. If something new has happened, please tell the director directly.',
     'your_reference' => 'Your reference is :reference. Keep it if you want to check on this later.',
     'students_disabled' => 'Student reporting is switched off at the moment. Please tell a teacher.',
     'addition_by' => 'Added by :name on :time:',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\AssetStatus;
 use App\Enums\ReporterType;
+use App\Enums\ReportStatus;
 use App\Events\ReportCreated;
 use App\Http\Requests\ReportRequest;
 use App\Models\Asset;
@@ -111,7 +112,7 @@ class PublicReportController extends Controller
         $report->device_token = $token;
         $report->ip_address = $request->ip();
         $report->description = $request->describedProblem();
-        $report->status = \App\Enums\ReportStatus::Open;
+        $report->status = ReportStatus::Open;
 
         // Snapshot where the asset actually was, so resolving it later can put
         // it back rather than guessing (spec section 7B).
@@ -153,11 +154,23 @@ class PublicReportController extends Controller
      */
     private function addToExistingReport(ReportRequest $request, Report $report, string $name, ReporterType $type, string $token): RedirectResponse
     {
-        $report->description = trim($report->description)
+        $description = trim($report->description)
             ."\n\n"
             .__('reports.addition_by', ['name' => $name, 'time' => now()->format('j M Y, H:i')])
             ."\n"
             .$request->describedProblem();
+
+        // Additions append to one column. Without a ceiling, a handful of
+        // long additions fill it, and from then on every genuine report on
+        // this item fails outright until the director closes it. Past the
+        // ceiling nothing more is stored, and the person is told plainly.
+        if (strlen($description) > Report::MAX_DESCRIPTION_BYTES) {
+            return redirect()
+                ->route('report.status', $report->reference)
+                ->with('status', __('reports.report_full'));
+        }
+
+        $report->description = $description;
 
         if ($request->hasFile('photo') && ! $report->photo_path) {
             $report->photo_path = $this->photos->store($request->file('photo'), 'reports');

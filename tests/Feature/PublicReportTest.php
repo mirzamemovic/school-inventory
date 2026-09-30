@@ -141,6 +141,27 @@ it('adds to the report that is already open instead of starting a duplicate', fu
         ->and($stored->reporter_name)->toBe('Arben Krasniqi');
 });
 
+it('stops adding to a report that is nearly full instead of failing everyone after', function () {
+    // Each addition appends to one TEXT column. Filled to the brim, the next
+    // genuine report on this item would fail on MySQL until the director
+    // closed it; past the ceiling nothing more is stored and nothing breaks.
+    $asset = Asset::factory()->create();
+    $report = Report::factory()->create([
+        'asset_id' => $asset->id,
+        'description' => str_repeat('x', Report::MAX_DESCRIPTION_BYTES - 500),
+    ]);
+
+    $this->post(route('report.store', $asset->asset_tag), reportPayload([
+        'problem' => null,
+        'description' => str_repeat('spam ', 400),
+    ]))
+        ->assertRedirect(route('report.status', $report->reference))
+        ->assertSessionHas('status', __('reports.report_full'));
+
+    expect(strlen($report->fresh()->description))->toBe(Report::MAX_DESCRIPTION_BYTES - 500)
+        ->and(Report::query()->count())->toBe(1);
+});
+
 it('remembers the name on the device so nobody is asked twice', function () {
     $asset = Asset::factory()->create();
     $other = Asset::factory()->create();
