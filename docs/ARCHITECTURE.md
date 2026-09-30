@@ -44,7 +44,7 @@ UI decision serves that person.
 ## 2. Stack
 
 - PHP 8.4 target, `^8.3` minimum in `composer.json` (dev machine runs 8.3.33)
-- Laravel 13.17
+- Laravel 13.34
 - Blade + **HTMX 2.0.10**. No SPA, no React/Vue/Livewire/Inertia
 - Tailwind CSS 4 (via `@tailwindcss/vite`), compiled by Vite
 - MySQL in production, **SQLite in development and tests**
@@ -70,30 +70,40 @@ These routes carry **no auth middleware at all**:
 - `/c/{room}` — supplies cupboard page
 - `/r/{reference}` — check the status of your own report
 - `/privacy` — what is collected and kept
-- `/photo/{path}` — photo serving
+- `/photo/{path}` — photo serving (asset photos only; report photos need a login)
+- `/inspector/{phone}` — the signed, once-only, 30-minute code that sets up an
+  inspector's phone (opening it changes nothing; only its button does)
 
 Identity is a name typed once and kept in a one-year cookie (`si_reporter`,
 JSON: `{token, name, type}`). **That cookie is a convenience, not a credential.**
-It never unlocks anything and is never checked as a permission.
+It never unlocks anything and is never checked as a permission — with one
+narrow exception: a device token enrolled in `inspector_phones` makes that
+phone's inspections count towards the schedule. See `SECURITY.md`.
 
 **Level 2 — admin, real login.** Everything under `/admin/*`. Two accounts.
 
 - **No registration route exists** (asserted by a test)
-- **No password reset UI.** `php artisan user:password {email}` instead
-- Login throttled 5/minute per email
+- **No password reset UI.** `php artisan user:password {email}` instead, which
+  also signs the account out everywhere
+- Login throttled 5/minute per email **and address**, plus 100/hour per email
+  from anywhere; "keep me signed in" lasts 14 days
 
 **There is no teacher login, deliberately.** Twenty accounts for people who touch
 the system four times a year means twenty forgotten passwords.
 
 **The one exception:** class teachers chasing book debts get a **signed,
-temporary, per-class URL** — `/class/{class}?expires=…&signature=…` — generated
-from the Returns screen, expiring at the end of the academic year.
+temporary, per-class URL** — `/class/{class}?v=…&expires=…&signature=…` —
+generated from the Returns screen, expiring at the end of the academic year.
+`v` is a per-class version kept in `settings` (`class_link_version:{class}`);
+*Make a new link* moves it on and every older copy stops working. Without it the
+same class and expiry always signed to the same URL, so a leaked link could not
+be withdrawn. Built only by `App\Services\ClassDebtLinks`.
 
 ---
 
 ## 4. Data model
 
-24 tables; 9 are Laravel's own (cache, jobs, sessions, migrations, users, …).
+25 tables; 9 are Laravel's own (cache, jobs, sessions, migrations, users, …).
 
 ### `rooms`
 `id, name, floor, type, last_counted_at, timestamps`
@@ -128,8 +138,8 @@ inspection_interval_months, last_inspected_at, notes, timestamps
   or the printed room inventory sheet lies.
 - `status` and `condition` are **two separate fields**. A working laptop in a
   cupboard is `in_storage` + `good`.
-- `last_inspected_at` is a **denormalised cache** of the newest `inspections`
-  row. Derived only; never edited by hand.
+- `last_inspected_at` is a **denormalised cache** of the newest **counted**
+  `inspections` row. Derived only; never edited by hand.
 
 ### `asset_events` — the single audit log
 `id, subject_type, subject_id, action, actor_type, actor_id, actor_name, device_token, ip_address, meta (JSON), created_at`
@@ -137,22 +147,36 @@ inspection_interval_months, last_inspected_at, notes, timestamps
 - **Append only. No `updated_at`.** `AssetEvent::booted()` throws
   `AuditLogIsAppendOnly` on any update or delete.
 - Polymorphic via an enforced morph map: `asset, report, person, supply,
-  inspection, licence`. `Relation::enforceMorphMap()` means an unmapped model
-  throws rather than writing a class name.
+  inspection, licence, inspector_phone, user`. `user` is the subject of what an
+  admin does to the system rather than one record (exporting, blocking a
+  device, replacing a class link). `Relation::enforceMorphMap()` means an
+  unmapped model throws rather than writing a class name.
 - `ip_address` is **not in the spec** — added per §13's requirement to store IP
   on public actions.
-- 24 actions: the 18 from §5, plus `licence.created/edited/renewed/deleted`,
-  `person.erased`, `data.retention_enforced`. All in `App\Support\EventAction`.
+- 31 actions: the 18 from §5, plus `licence.created/edited/renewed/deleted`,
+  `person.erased`, `data.retention_enforced`, `data.exported` (§16),
+  `device.blocked/unblocked`, `book.class_link_replaced` and
+  `inspector_phone.invited/claimed/withdrawn`. All in `App\Support\EventAction`.
 - `meta` stores before/after pairs: `{"room":{"from":"Lab 2","to":"Room 14"}}`.
 
 **Honesty constraint:** public actors are self-declared, never verified.
 `actor_type` distinguishes them and the UI styles them as "Self-reported".
 
 ### `inspections`
-`id, asset_id, inspected_at, inspector_name, result, notes, next_due_at, device_token, created_at`
+`id, asset_id, inspected_at, inspector_name, result, counted, notes, next_due_at, device_token, created_at`
 A **domain table, not a second log** — an inspection has legal weight for fire
 safety. `result = fail` sets the asset's condition to `needs_attention` **and
 automatically raises a report**. `inspector_name` is free text with no FK.
+`counted` (**added later**) is true only for a check from an enrolled inspector
+phone or a signed-in admin; only counted checks set `next_due_at` and move
+`assets.last_inspected_at`. Rows from before the column existed are counted.
+
+### `inspector_phones` (**added later**)
+`id, label, device_token, invite_expires_at, invited_by, claimed_at, withdrawn_at, last_used_at, timestamps`
+The phones whose inspections count. Invited by an admin (a once-only signed
+code, 30 minutes), claimed by scanning it on the phone, withdrawn by an admin
+— never deleted. `device_token` is indexed, not unique: a withdrawn phone keeps
+its token for the record and may be set up again.
 
 ### `licenses`
 `id, name, vendor, type, licence_model, seats_total, seats_used, purchase_date, expires_at, renewal_cost, auto_renew, account_reference, asset_id, notes, timestamps`
@@ -249,6 +273,12 @@ Break any of these and the system becomes wrong rather than merely buggy.
 8. **Status ≠ condition.** Two fields, always.
 9. **An open book loan is never deleted,** at any age.
 10. **Every write path writes to `asset_events`.**
+11. **Anonymous input may raise a warning, never silence one.** A public
+    recount can only confirm or lower stock; a public inspection only counts
+    from an enrolled phone. Everything else a stranger can do only adds to what
+    the director sees. See `SECURITY.md` before adding any public write.
+12. **A signed link that shows personal data must be withdrawable.** A signed
+    URL alone cannot be recalled; the class link carries a version for that.
 
 ---
 
@@ -372,6 +402,13 @@ scan page. Pass records and recalculates. **Fail sets condition to
 `needs_attention` and raises a report automatically.** Overdue is computed in
 PHP, not SQL.
 
+Only a check from an enrolled inspector phone (*Manage → Inspectors' phones*)
+or a signed-in admin is **counted**: it moves `last_inspected_at` and sets the
+next due date. Anyone else's check is still recorded — and a failure still
+raises a report — but the page says beforehand that it will not count, the
+asset page marks it *Not counted*, and the overdue list shows it as an
+unconfirmed check.
+
 ### F. Retention and erasure (both manual, never scheduled)
 
 `data:enforce-retention` deletes returned loans at the end of the academic year
@@ -389,8 +426,18 @@ audit row and every book loan. Appends `person.erased` naming nobody.
 
 ## 10. Security
 
+The security model — what is protected, the rule every public write follows,
+and what is deliberately accepted — is in `SECURITY.md`. This section is the
+summary.
+
 Threat model, in order: a bored 16-year-old; **enumeration**; the public photo
 upload; bot noise; admin compromise. Not nation states.
+
+**Headers on every response** (`App\Http\Middleware\SecureHeaders`): a
+Content-Security-Policy that runs scripts only from the site's own files (no
+inline scripts or handlers exist, and a test keeps it so; htmx runs with eval
+off), `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `nosniff`, and in
+production HSTS plus a 308 redirect from plain HTTP.
 
 **Rate limits** (device token first — the whole school shares one public IP):
 
@@ -469,8 +516,10 @@ search dropdown, serial-number check.
 
 ## 13. Testing
 
-**324 tests, 954 assertions, Pest, all passing.** 25 feature test files. Tests
-run against SQLite `:memory:` with `RefreshDatabase`.
+**363 tests, 1,118 assertions, Pest, all passing.** 27 feature test files. Tests
+run against SQLite `:memory:` with `RefreshDatabase`. `SecurityHardeningTest`
+and `InspectorPhoneTest` hold the security work; the breached-password check is
+faked so the suite never leaves the machine.
 
 Every write path has a test (§0 rule 5). The suite is organised by behaviour
 rather than by class — `PublicScanTest` asserts the enumeration defence,
@@ -512,6 +561,18 @@ Each of these was a real bug found in this codebase. Do not reintroduce them.
    asserts the page count.
 10. **Test the empty/landing state, not just the populated one.** Several bugs
     lived exclusively in "before anything is selected".
+11. **A signed URL is deterministic.** The same route, parameters and expiry
+    always sign to the same URL, so "regenerating" one hands back the link that
+    leaked. Put a version inside the signed part if it must ever be withdrawn.
+12. **File size says nothing about decoded size.** An 80-byte PNG can declare
+    20,000 × 20,000 pixels and exhaust memory the moment GD allocates it. Check
+    the declared dimensions before decoding (`DecodablePhoto`).
+13. **Apache applies `.htaccess` files from parent folders too.** The deny-all
+    in the project folder would block `public/` as well without the explicit
+    grant in `public/.htaccess`. Keep them together.
+14. **Tests send cookies encrypted.** Use `withCookie()` for the reporter
+    cookie; `withUnencryptedCookie()` skips encryption, the app still decrypts,
+    and the cookie silently reads as empty.
 
 ---
 
