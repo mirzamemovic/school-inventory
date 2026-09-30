@@ -114,7 +114,9 @@
                         <h2 class="font-bold">{{ __('reports.close_heading') }}</h2>
                         <p class="mt-1 mb-4 text-sm text-grey-600">{{ __('reports.close_help') }}</p>
 
-                        <x-field :label="__('reports.note')" name="resolution_note">
+                        {{-- Shown on the public /r/{reference} page, so the
+                             director is told before writing, not after. --}}
+                        <x-field :label="__('reports.note')" name="resolution_note" :help="__('reports.note_help')">
                             <x-textarea name="resolution_note" rows="2" :value="old('resolution_note')"
                                         :placeholder="__('reports.note_placeholder')" />
                         </x-field>

@@ -36,7 +36,7 @@ return [
     'dismissed' => 'Closed as not a problem. The item has gone back to where it was.',
     'note' => 'Note (optional)',
     'note_placeholder' => 'What was done, in one line.',
-    'note_help' => 'Saved with the report when you press Fixed or Not a problem.',
+    'note_help' => 'The person who reported this can read the note on their report page, so write it for them.',
     'close_heading' => 'Close this report',
     'close_help' => 'Both put the item back to the state it was in before it was reported.',
     'being_worked_on' => 'Marked as being worked on :time.',
