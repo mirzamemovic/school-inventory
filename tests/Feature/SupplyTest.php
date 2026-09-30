@@ -102,6 +102,40 @@ it('overwrites the number outright on a recount', function () {
         ->and(AssetEvent::query()->where('action', EventAction::SUPPLY_RECOUNTED)->exists())->toBeTrue();
 });
 
+it('will not let a public recount raise the stock', function () {
+    // Paper "recounted" to 9999 is never running low again: the one way an
+    // anonymous tap could silence a warning. Deliveries go through the office.
+    $room = Room::factory()->create();
+    $supply = Supply::factory()->create(['quantity' => 4, 'minimum_level' => 5, 'room_id' => $room->id]);
+
+    $this->post(route('cupboard.recount', [$room, $supply]), ['quantity' => 9999])
+        ->assertSessionHasErrors(['quantity' => __('supplies.recount_too_high', ['count' => 4])]);
+
+    expect($supply->fresh()->quantity)->toBe(4)
+        ->and($supply->fresh()->isLow())->toBeTrue()
+        ->and(AssetEvent::query()->where('action', EventAction::SUPPLY_RECOUNTED)->exists())->toBeFalse();
+});
+
+it('lets a public recount confirm the number as it stands', function () {
+    $room = Room::factory()->create();
+    $supply = Supply::factory()->create(['quantity' => 12, 'room_id' => $room->id, 'last_counted_at' => null]);
+
+    $this->post(route('cupboard.recount', [$room, $supply]), ['quantity' => 12])->assertRedirect();
+
+    expect($supply->fresh()->quantity)->toBe(12)
+        ->and($supply->fresh()->last_counted_at)->not->toBeNull();
+});
+
+it('still lets the office raise the stock when a delivery arrives', function () {
+    $supply = Supply::factory()->create(['quantity' => 4]);
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.supplies.adjust', $supply), ['by' => 1])
+        ->assertRedirect();
+
+    expect($supply->fresh()->quantity)->toBe(5);
+});
+
 it('refuses a silly withdrawal', function () {
     $room = Room::factory()->create();
     $supply = Supply::factory()->create(['room_id' => $room->id]);

@@ -64,6 +64,11 @@ class PublicCupboardController extends Controller
      * Recount overwrites the number outright. Reconciling what is actually on
      * the shelf is more reliable than catching every withdrawal
      * (spec section 8).
+     *
+     * From this page a recount can only confirm the number or bring it down.
+     * Raising it is the one thing an anonymous tap could use to silence a
+     * warning — paper set to 9999 is never "running low" again — and stock
+     * only goes up when a delivery arrives, which the office records.
      */
     public function recount(Request $request, Room $room, Supply $supply): RedirectResponse|Response
     {
@@ -73,9 +78,10 @@ class PublicCupboardController extends Controller
             return response()->view('public.too-many', status: 429);
         }
 
-        $validated = $request->validate([
-            'quantity' => ['required', 'integer', 'min:0', 'max:10000'],
-        ]);
+        $validated = $request->validate(
+            ['quantity' => ['required', 'integer', 'min:0', 'max:'.$supply->quantity]],
+            ['quantity.max' => __('supplies.recount_too_high', ['count' => $supply->quantity])],
+        );
 
         $before = $supply->quantity;
 

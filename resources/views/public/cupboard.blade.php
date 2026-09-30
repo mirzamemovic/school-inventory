@@ -54,7 +54,7 @@
                             @csrf
                             <span class="w-24 shrink-0">
                                 <label for="count-{{ $supply->id }}" class="mb-1 block text-sm font-semibold text-grey-800">{{ __('supplies.recount_label') }}</label>
-                                <input type="number" name="quantity" id="count-{{ $supply->id }}" min="0" max="10000" inputmode="numeric"
+                                <input type="number" name="quantity" id="count-{{ $supply->id }}" min="0" max="{{ $supply->quantity }}" inputmode="numeric"
                                        class="block min-h-tap w-full rounded border border-grey-300 bg-white px-3 text-center text-lg tabular-nums">
                             </span>
                             <button type="submit" data-busy-text="{{ __('common.saving') }}"
