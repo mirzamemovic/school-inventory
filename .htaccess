@@ -1,0 +1,17 @@
+# Insurance, not the fix.
+#
+# The domain's document root must point at /public (see DEPLOYMENT.md). If it
+# ever points at this folder instead, every file here would be downloadable —
+# .env with the database password and APP_KEY, storage/ with report photos,
+# the SQLite file on a test copy. This makes that mistake fail closed: the site
+# stops working, and nothing leaks. With the document root set correctly,
+# Apache never reads this file.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

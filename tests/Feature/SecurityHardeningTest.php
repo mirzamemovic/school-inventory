@@ -67,6 +67,14 @@ it('turns plain HTTP away in production, and says to stay on HTTPS', function ()
     $this->withHeader('X-Forwarded-Proto', 'https')->get('http://school.example/privacy')->assertOk();
 });
 
+it('fails closed if the document root is ever set to the project folder', function () {
+    // Insurance for the worst mistake in DEPLOYMENT.md: .env downloadable.
+    $rules = file_get_contents(base_path('.htaccess'));
+
+    expect($rules)->toContain('Require all denied')
+        ->and($rules)->toContain('Deny from all');
+});
+
 it('keeps report photos behind the admin login', function () {
     // Only the director looks at these, and a photo taken in a classroom can
     // show a student. A stranger gets the same answer as for a missing file.

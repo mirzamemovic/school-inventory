@@ -84,6 +84,11 @@ https://school.example/              → the login screen
 If `.env` downloads, stop and fix the document root before putting any real data
 in.
 
+The project folder carries its own `.htaccess` that denies everything. It is
+insurance: if the document root is ever set to the project folder by mistake,
+the site stops working instead of handing out `.env`. Do not delete it, and do
+not "fix" a broken site by removing it — fix the document root.
+
 ---
 
 ## Environment
@@ -102,6 +107,9 @@ Copy `.env.example` to `.env` on the server and set these.
 | `CACHE_STORE` | `database` | No Redis on shared hosting |
 | `QUEUE_CONNECTION` | `database` | |
 | `MAIL_MAILER` | `log` | Email is not configured; nothing sends |
+| `SESSION_SECURE_COOKIE` | leave unset | Secure by default when `APP_ENV=production` |
+| `AUTH_REMEMBER_MINUTES` | leave unset | "Keep me signed in" lasts 14 days (20160) |
+| `SCHOOL_FORCE_HTTPS` | leave unset | Plain HTTP is redirected to HTTPS. Set `false` only if the host already redirects and the two loop |
 
 Generate the key once and never change it afterwards — rotating `APP_KEY`
 invalidates every encrypted cookie, which signs everybody out and breaks the
@@ -121,8 +129,28 @@ returns *Forbidden*.
 ### HTTPS
 
 cPanel provides free Let's Encrypt certificates — turn one on. The application
-forces HTTPS by itself once `APP_ENV=production`, so a certificate has to exist
-or nothing will load.
+forces HTTPS by itself once `APP_ENV=production`: plain-HTTP requests are
+redirected, and every HTTPS response tells the browser to stay on HTTPS for a
+year (HSTS). So a certificate has to exist and renew, or nothing will load.
+
+If pages loop between HTTP and HTTPS, the host is ending HTTPS at a proxy and
+not saying so. The application already honours `X-Forwarded-Proto`; if the loop
+persists, set `SCHOOL_FORCE_HTTPS=false` and turn on the host's own redirect.
+
+### Two database users, not one
+
+The realistic way this system dies is a database wiped by mistake, so the
+account the website runs as should not be able to wipe it. In cPanel →
+*MySQL Databases*, make two users for the same database:
+
+| User | Privileges | Used by |
+|---|---|---|
+| the app user | `SELECT`, `INSERT`, `UPDATE`, `DELETE` only | `DB_USERNAME` in `.env`, always |
+| a migration user | `ALL PRIVILEGES` | only while running `php artisan migrate` |
+
+Nothing the website does needs to create, alter or drop a table. To migrate,
+put the migration user's name and password in `.env`, run the migration, run
+`php artisan config:clear`, and put the app user back.
 
 ---
 
@@ -148,6 +176,21 @@ demo data — see below.
 made with `user:create` and passwords changed with `user:password`. If you cannot
 run artisan on the server, create the two accounts locally before uploading and
 they come across in the database.
+
+Passwords must be at least 16 characters, must not appear in a known data
+breach, and must not contain the school's name or the email address. A phrase of
+four or more ordinary words is the easiest way to meet that. `user:password`
+also signs the account out everywhere — use it straight away if anyone else may
+know the password.
+
+### Inspectors' phones
+
+A fire-extinguisher check only counts when it is recorded on a phone set up
+under *Manage → Inspectors' phones*, or by an admin who is signed in. Anyone else
+can still record what they found, but it will not reset the inspection date.
+Set up the caretaker's phone (or whoever does the rounds) before the first round
+of inspections: *Make a set-up code*, then scan it with that phone straight away.
+The code works once and runs out after half an hour.
 
 If you cache config, remember: **`php artisan config:clear` after every `.env`
 change**, or the old values keep being used.
@@ -192,20 +235,49 @@ a bad migration in month four.
 confirm it includes the database, not just files. Check the retention setting —
 some hosts keep only one.
 
-**2. A weekly `mysqldump`,** kept somewhere that is not the same server. A cron
-job in cPanel:
+**2. A weekly `mysqldump`,** encrypted, with a copy kept somewhere that is not
+the same server.
 
-```bash
-mysqldump -u USER -pPASSWORD DATABASE | gzip > ~/backups/inventory-$(date +\%F).sql.gz
+Keep the database password out of the command. A password written after `-p`
+shows up in the process list and in cron's own logs. Put it in a file only you
+can read instead — in cPanel's *File Manager* or *Terminal*, create
+`~/.my.cnf`:
+
+```ini
+[client]
+user=THE_APP_DB_USER
+password=THE_APP_DB_PASSWORD
 ```
 
-cPanel cron escapes `%` as `\%` — that is not a typo.
+and set its permissions to `600` (owner read/write only). `mysqldump` reads it
+by itself.
+
+The dump holds the names and borrowing history of children, so it is encrypted
+before it is written. Create `~/.backup-pass` with one long random line in it,
+also `600`, and keep a copy of that line somewhere safe **off** the server — a
+backup nobody can decrypt is not a backup. Then the cron job in cPanel:
+
+```bash
+mysqldump --single-transaction --no-tablespaces DATABASE | gzip | openssl enc -aes-256-cbc -pbkdf2 -salt -pass file:$HOME/.backup-pass > ~/backups/inventory-$(date +\%F).sql.gz.enc
+```
+
+cPanel cron escapes `%` as `\%` — that is not a typo. To restore:
+
+```bash
+openssl enc -d -aes-256-cbc -pbkdf2 -pass file:$HOME/.backup-pass -in inventory-2026-10-05.sql.gz.enc | gunzip | mysql DATABASE
+```
+
+**Off the server.** A backup on the same cPanel account dies with the account: a
+hosting failure, an unpaid invoice or a compromised password takes both. Once a
+month, download the newest `.enc` file from *File Manager* to the school's own
+computer (it is already encrypted), or point cPanel's *Backup Wizard* at a
+remote destination if the host offers one.
 
 Add a second weekly job to delete anything older than about eight weeks, or the
 disk quota fills up quietly:
 
 ```bash
-find ~/backups -name 'inventory-*.sql.gz' -mtime +56 -delete
+find ~/backups -name 'inventory-*.sql.gz.enc' -mtime +56 -delete
 ```
 
 **Test the restore once.** A backup nobody has restored is a hypothesis. Load a
@@ -246,7 +318,10 @@ without the package, but there is no reason for them to be there.
 Run through these once, in a browser that is not signed in:
 
 - [ ] `https://school.example/.env` returns 404 or 403
+- [ ] `http://school.example/` (plain HTTP) redirects to `https://`
 - [ ] `https://school.example/` shows the login screen over HTTPS
+- [ ] The response headers of any page include `Content-Security-Policy` and
+      `X-Frame-Options: DENY` (browser developer tools → Network → the page)
 - [ ] `https://school.example/a/INV-PC-0001` shows a scan page with **no** price,
       serial number or supplier on it — and does not redirect to login
 - [ ] `https://school.example/robots.txt` disallows everything
@@ -267,7 +342,7 @@ composer install --no-dev --optimize-autoloader
 npm run build
 
 # upload changed files, then on the server
-php artisan migrate --force
+php artisan migrate --force          # as the migration user, then switch back
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
