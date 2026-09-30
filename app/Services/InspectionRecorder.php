@@ -13,6 +13,8 @@ use App\Models\Inspection;
 use App\Models\Report;
 use App\Support\Actor;
 use App\Support\EventAction;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,6 +25,13 @@ class InspectionRecorder
 {
     public function __construct(private readonly AuditLogger $log) {}
 
+    /**
+     * $counted says whether this check moves the schedule. The public page
+     * passes false unless the phone was set up by the director or an admin is
+     * signed in: anyone can say an extinguisher is fine, but only a trusted
+     * check may quieten its overdue warning. What was found is recorded either
+     * way, and a failure raises a report either way.
+     */
     public function record(
         Asset $asset,
         InspectionResult $result,
@@ -30,8 +39,9 @@ class InspectionRecorder
         ?string $notes = null,
         ?Actor $actor = null,
         ?string $deviceToken = null,
+        bool $counted = true,
     ): Inspection {
-        return DB::transaction(function () use ($asset, $result, $inspectorName, $notes, $actor, $deviceToken) {
+        return DB::transaction(function () use ($asset, $result, $inspectorName, $notes, $actor, $deviceToken, $counted) {
             $inspectedAt = now();
 
             // Captured before the failure handling changes anything, so the
@@ -45,18 +55,23 @@ class InspectionRecorder
                 'inspected_at' => $inspectedAt,
                 'inspector_name' => $inspectorName,
                 'result' => $result,
+                'counted' => $counted,
                 'notes' => $notes,
-                'next_due_at' => $this->nextDue($asset, $inspectedAt),
+                'next_due_at' => $counted ? $this->nextDue($asset, $inspectedAt) : null,
                 'device_token' => $deviceToken,
             ]);
 
             // Derived, never edited by hand: recalculated only when an
-            // inspection is recorded (spec section 5).
-            $asset->forceFill(['last_inspected_at' => $inspectedAt])->save();
+            // inspection is recorded (spec section 5) — and only from checks
+            // that count, so the cache is always the newest counted one.
+            if ($counted) {
+                $asset->forceFill(['last_inspected_at' => $inspectedAt])->save();
+            }
 
             $this->log->record($asset, EventAction::ASSET_INSPECTED, [
                 'result' => $result->value,
                 'inspector' => $inspectorName,
+                'counted' => $counted,
             ], $actor);
 
             if ($result === InspectionResult::Fail) {
@@ -116,7 +131,7 @@ class InspectionRecorder
     }
 
     /** Next due is calculated from the newest inspection, never stored on the asset. */
-    private function nextDue(Asset $asset, \Illuminate\Support\Carbon $inspectedAt): ?\Illuminate\Support\Carbon
+    private function nextDue(Asset $asset, Carbon $inspectedAt): ?Carbon
     {
         return $asset->inspection_interval_months
             ? $inspectedAt->copy()->addMonths($asset->inspection_interval_months)
@@ -131,12 +146,12 @@ class InspectionRecorder
      * months" needs DATE_ADD on MySQL and datetime(...) on SQLite, and at a
      * hundred compliance items the difference is unmeasurable.
      *
-     * @return \Illuminate\Support\Collection<int, Asset>
+     * @return Collection<int, Asset>
      */
-    public static function overdue(): \Illuminate\Support\Collection
+    public static function overdue(): Collection
     {
         return Asset::query()
-            ->with('room')
+            ->with(['room', 'latestInspection'])
             ->where('needs_inspection', true)
             ->where('status', '!=', AssetStatus::Retired->value)
             ->orderBy('last_inspected_at')
@@ -158,7 +173,7 @@ class InspectionRecorder
         return self::dueOn($asset)?->isPast() ?? false;
     }
 
-    public static function dueOn(Asset $asset): ?\Illuminate\Support\Carbon
+    public static function dueOn(Asset $asset): ?Carbon
     {
         if ($asset->last_inspected_at === null || ! $asset->inspection_interval_months) {
             return null;

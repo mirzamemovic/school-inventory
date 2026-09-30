@@ -1,31 +1,33 @@
 <?php
 
-use App\Http\Controllers\Admin\AssetActionController;
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\AssetActionController;
 use App\Http\Controllers\Admin\AssetController;
 use App\Http\Controllers\Admin\BookController;
-use App\Http\Controllers\Admin\PersonController;
-use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\SupplyController;
-use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\BulkIntakeController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InspectionOverdueController;
+use App\Http\Controllers\Admin\InspectorPhoneController;
 use App\Http\Controllers\Admin\LabelController;
 use App\Http\Controllers\Admin\LicenseController;
 use App\Http\Controllers\Admin\ManageController;
+use App\Http\Controllers\Admin\PersonController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SerialCheckController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SupplyController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClassDebtController;
 use App\Http\Controllers\InspectionController;
+use App\Http\Controllers\InspectorPhoneSetupController;
 use App\Http\Controllers\PhotoController;
-use App\Http\Controllers\PublicCupboardController;
 use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\PublicAssetController;
+use App\Http\Controllers\PublicCupboardController;
 use App\Http\Controllers\PublicReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +68,20 @@ Route::get('/a/{tag}/inspect', [InspectionController::class, 'create'])
 Route::post('/a/{tag}/inspect', [InspectionController::class, 'store'])
     ->middleware('throttle:supply')
     ->name('inspection.store');
+
+// Setting up an inspector's phone: the code on the director's screen, scanned
+// by that phone. Signed, once only, half an hour. Opening it changes nothing;
+// only the button does, so a link preview cannot use the code up.
+Route::get('/inspector/{phone}', [InspectorPhoneSetupController::class, 'show'])
+    ->middleware(['signed', 'throttle:scan'])
+    ->name('inspector-phone.setup');
+
+Route::post('/inspector/{phone}', [InspectorPhoneSetupController::class, 'store'])
+    ->middleware(['signed', 'throttle:supply'])
+    ->name('inspector-phone.claim');
+
+Route::get('/inspector-ready', [InspectorPhoneSetupController::class, 'done'])
+    ->name('inspector-phone.done');
 
 // One QR on the cupboard door.
 Route::get('/c/{room}', [PublicCupboardController::class, 'show'])
@@ -181,6 +197,11 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('supplies/{supply}/adjust', [SupplyController::class, 'adjust'])->name('supplies.adjust');
 
     Route::get('inspections/overdue', InspectionOverdueController::class)->name('inspections.overdue');
+
+    Route::get('inspectors', [InspectorPhoneController::class, 'index'])->name('inspectors.index');
+    Route::post('inspectors', [InspectorPhoneController::class, 'store'])->name('inspectors.store');
+    Route::get('inspectors/{phone}', [InspectorPhoneController::class, 'show'])->name('inspectors.show');
+    Route::delete('inspectors/{phone}', [InspectorPhoneController::class, 'withdraw'])->name('inspectors.withdraw');
 
     Route::get('licenses', [LicenseController::class, 'index'])->name('licenses.index');
     Route::get('licenses/create', [LicenseController::class, 'create'])->name('licenses.create');

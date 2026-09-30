@@ -12,7 +12,7 @@
         ['label' => __('nav.assets'), 'path' => '/admin/assets', 'patterns' => ['admin/assets*', 'admin/intake*', 'admin/labels*', 'admin/inspections*']],
         ['label' => __('nav.reports'), 'path' => '/admin/reports', 'patterns' => ['admin/reports*'], 'badge' => true],
         ['label' => __('nav.books'), 'path' => '/admin/books', 'patterns' => ['admin/books*']],
-        ['label' => __('nav.manage'), 'path' => '/admin/manage', 'patterns' => ['admin/manage*', 'admin/rooms*', 'admin/people*', 'admin/supplies*', 'admin/licenses*', 'admin/categories*', 'admin/activity*', 'admin/settings*', 'admin/users*']],
+        ['label' => __('nav.manage'), 'path' => '/admin/manage', 'patterns' => ['admin/manage*', 'admin/rooms*', 'admin/people*', 'admin/supplies*', 'admin/licenses*', 'admin/categories*', 'admin/activity*', 'admin/settings*', 'admin/users*', 'admin/inspectors*']],
     ];
 @endphp
 <!DOCTYPE html>

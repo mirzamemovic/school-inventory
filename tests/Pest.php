@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\InspectorPhone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -47,6 +49,21 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Make the next requests come from a phone the director has set up for safety
+ * checks, and return its device token.
+ */
+function asInspectorPhone(?string $token = null): string
+{
+    $token ??= Str::random(40);
+
+    InspectorPhone::factory()->claimedBy($token)->create();
+
+    test()->withCookie('si_reporter', json_encode(['token' => $token]));
+
+    return $token;
 }
 
 /**

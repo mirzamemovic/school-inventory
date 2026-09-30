@@ -30,11 +30,13 @@ it('offers an I-checked-this button on a compliance item, and not on anything el
 });
 
 it('records an inspection without anybody signing in', function () {
+    // Recorded, but from an unknown phone it does not count as the official
+    // check: see InspectorPhoneTest.
     $asset = Asset::factory()->needingInspection(12)->create();
 
     $this->post(route('inspection.store', $asset->asset_tag), inspectionPayload())
         ->assertRedirect(route('scan', $asset->asset_tag))
-        ->assertSessionHas('status', __('inspections.pass_thanks'));
+        ->assertSessionHas('status', __('inspections.pass_not_counted'));
 
     $inspection = Inspection::query()->firstOrFail();
 
@@ -45,6 +47,7 @@ it('records an inspection without anybody signing in', function () {
 
 it('works out when the next one is due from the interval', function () {
     $asset = Asset::factory()->needingInspection(6)->create();
+    asInspectorPhone();
 
     $this->post(route('inspection.store', $asset->asset_tag), inspectionPayload());
 
@@ -54,6 +57,7 @@ it('works out when the next one is due from the interval', function () {
 
 it('refreshes the cached last-inspected date on the asset', function () {
     $asset = Asset::factory()->needingInspection()->create();
+    asInspectorPhone();
 
     expect($asset->last_inspected_at)->toBeNull();
 

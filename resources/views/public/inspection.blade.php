@@ -22,6 +22,12 @@
 
     <h2 class="mt-8 text-lg font-bold">{{ __('inspections.heading') }}</h2>
 
+    {{-- Said before the buttons, so nobody believes a check counted when it
+         did not. What they found is still recorded. --}}
+    @unless ($counts)
+        <p class="mt-3 rounded border border-grey-300 bg-grey-50 px-4 py-3 text-grey-800">{{ __('inspections.not_counted_note') }}</p>
+    @endunless
+
     <form method="POST" action="{{ route('inspection.store', $tag) }}" class="mt-4">
         @csrf
 

@@ -74,6 +74,22 @@ class DeviceIdentity
         );
     }
 
+    /**
+     * Keep this device's token for a year even though it has not given a name.
+     * Setting a phone up for safety checks needs the token to survive; any name
+     * and type already remembered are left as they were.
+     */
+    public function keep(Request $request, string $token): void
+    {
+        $stored = $this->decode($request);
+
+        Cookie::queue(
+            self::COOKIE,
+            json_encode(['token' => $token, 'name' => $stored['name'] ?? null, 'type' => $stored['type'] ?? null]),
+            self::ONE_YEAR_IN_MINUTES,
+        );
+    }
+
     public function newToken(): string
     {
         return Str::random(40);

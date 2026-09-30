@@ -19,6 +19,7 @@ class ManageController extends Controller
                 ['key' => 'people', 'url' => route('admin.people.index')],
                 ['key' => 'supplies', 'url' => route('admin.supplies.index')],
                 ['key' => 'licenses', 'url' => route('admin.licenses.index')],
+                ['key' => 'inspectors', 'url' => route('admin.inspectors.index')],
                 ['key' => 'categories', 'url' => route('admin.categories.index')],
                 ['key' => 'activity', 'url' => route('admin.activity.index')],
                 ['key' => 'settings', 'url' => route('admin.settings.edit')],

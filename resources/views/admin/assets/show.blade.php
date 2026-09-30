@@ -242,6 +242,9 @@
                                         {{ $inspection->result->label() }}
                                     </span>
                                     <span class="min-w-0 flex-1 truncate text-grey-700">{{ $inspection->inspector_name }}</span>
+                                    @unless ($inspection->counted)
+                                        <span class="rounded bg-grey-100 px-1.5 py-0.5 text-xs text-grey-700">{{ __('inspections.not_counted') }}</span>
+                                    @endunless
                                     <span class="text-grey-600 tabular-nums">{{ $inspection->inspected_at->format('j M Y') }}</span>
                                 </li>
                             @endforeach

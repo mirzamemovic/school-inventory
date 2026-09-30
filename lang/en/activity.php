@@ -87,6 +87,11 @@ return [
             'blocked' => ':actor blocked a device from sending anything',
             'unblocked' => ':actor let a blocked device send again',
         ],
+        'inspector_phone' => [
+            'invited' => ':actor made a code to set up a phone for safety checks',
+            'claimed' => ':actor set up a phone for safety checks',
+            'withdrawn' => ':actor withdrew a phone from safety checks',
+        ],
         'licence' => [
             'created' => ':actor added this license',
             'edited' => ':actor changed :from to :to',

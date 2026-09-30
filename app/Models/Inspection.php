@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['asset_id', 'inspected_at', 'inspector_name', 'result', 'notes', 'next_due_at', 'device_token'])]
+#[Fillable(['asset_id', 'inspected_at', 'inspector_name', 'result', 'counted', 'notes', 'next_due_at', 'device_token'])]
 class Inspection extends Model
 {
     use HasFactory;
@@ -19,6 +19,7 @@ class Inspection extends Model
     {
         return [
             'result' => InspectionResult::class,
+            'counted' => 'boolean',
             'inspected_at' => 'datetime',
             'next_due_at' => 'datetime',
             'created_at' => 'datetime',

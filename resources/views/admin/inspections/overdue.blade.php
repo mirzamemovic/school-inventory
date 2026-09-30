@@ -21,6 +21,16 @@
                                         : __('inspections.never_inspected'),
                                 ])->filter()->join(' · ') }}
                             </span>
+                            {{-- Someone did look, just not on a phone that was
+                                 set up: worth knowing, not worth counting. --}}
+                            @if ($asset->latestInspection && ! $asset->latestInspection->counted)
+                                <span class="mt-0.5 block text-sm text-grey-700">
+                                    {{ __('inspections.unconfirmed_check', [
+                                        'name' => $asset->latestInspection->inspector_name,
+                                        'time' => $asset->latestInspection->inspected_at->diffForHumans(),
+                                    ]) }}
+                                </span>
+                            @endif
                         </span>
 
                         <span class="shrink-0 rounded bg-status-attention-soft px-2 py-0.5 text-xs font-semibold text-status-attention">

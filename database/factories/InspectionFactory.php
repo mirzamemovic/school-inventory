@@ -15,7 +15,14 @@ class InspectionFactory extends Factory
             'inspected_at' => now(),
             'inspector_name' => fake()->name(),
             'result' => InspectionResult::Pass,
+            'counted' => true,
         ];
+    }
+
+    /** Recorded from a phone that was not set up for safety checks. */
+    public function notCounted(): static
+    {
+        return $this->state(['counted' => false]);
     }
 
     public function failed(): static

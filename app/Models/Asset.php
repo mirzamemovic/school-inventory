@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -92,6 +93,12 @@ class Asset extends Model
     public function inspections(): HasMany
     {
         return $this->hasMany(Inspection::class)->latest('inspected_at');
+    }
+
+    /** The newest check of any kind, counted or not. */
+    public function latestInspection(): HasOne
+    {
+        return $this->hasOne(Inspection::class)->latestOfMany('inspected_at');
     }
 
     public function reports(): HasMany

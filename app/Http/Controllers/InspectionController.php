@@ -6,6 +6,7 @@ use App\Enums\ActorType;
 use App\Enums\InspectionResult;
 use App\Models\Asset;
 use App\Models\BlockedDevice;
+use App\Models\InspectorPhone;
 use App\Services\AuditLogger;
 use App\Services\DeviceIdentity;
 use App\Services\InspectionRecorder;
@@ -47,6 +48,9 @@ class InspectionController extends Controller
             'room' => $asset->room?->name,
             'knownName' => $this->device->name($request),
             'lastInspectedAt' => $asset->last_inspected_at,
+            // Said before the buttons, so nobody believes a check counted
+            // when it did not.
+            'counts' => $this->counts($request),
         ]);
     }
 
@@ -71,21 +75,41 @@ class InspectionController extends Controller
         ]);
 
         $result = InspectionResult::from($validated['result']);
+        $phone = InspectorPhone::trusted($token);
+        $user = $request->user();
+
+        // Only a check from a phone the director set up, or from a signed-in
+        // admin, moves the schedule. Anyone else's is recorded, but cannot
+        // quieten an overdue warning on its own.
+        $counted = $phone !== null || $user !== null;
 
         $this->recorder->record(
             asset: $asset,
             result: $result,
             inspectorName: $validated['inspector_name'],
             notes: $validated['notes'] ?? null,
-            actor: new Actor(ActorType::Public, null, $validated['inspector_name'], $token),
+            actor: $user
+                ? Actor::admin($user)
+                : new Actor(ActorType::Public, null, $validated['inspector_name'], $token),
             deviceToken: $token,
+            counted: $counted,
         );
+
+        $phone?->forceFill(['last_used_at' => now()])->save();
 
         return redirect()
             ->route('scan', $asset->asset_tag)
-            ->with('status', $result === InspectionResult::Pass
-                ? __('inspections.pass_thanks')
-                : __('inspections.fail_thanks'));
+            ->with('status', match (true) {
+                $result === InspectionResult::Fail => __('inspections.fail_thanks'),
+                $counted => __('inspections.pass_thanks'),
+                default => __('inspections.pass_not_counted'),
+            });
+    }
+
+    private function counts(Request $request): bool
+    {
+        return $request->user() !== null
+            || InspectorPhone::trusted($this->device->token($request)) !== null;
     }
 
     private function findAsset(string $tag): Asset|Response

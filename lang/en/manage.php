@@ -10,6 +10,8 @@ return [
     'supplies_help' => 'Paper, toner, chalk. Quantity and a minimum level.',
     'licenses' => 'Licenses',
     'licenses_help' => 'Subscriptions and licences, and when each one runs out.',
+    'inspectors' => 'Inspectors\' phones',
+    'inspectors_help' => 'The phones whose safety checks count officially.',
     'categories' => 'Categories',
     'categories_help' => 'The kinds of thing the school owns, and their tag prefixes.',
     'activity' => 'Activity',

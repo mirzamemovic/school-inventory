@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Asset;
 use App\Models\Inspection;
+use App\Models\InspectorPhone;
 use App\Models\License;
 use App\Models\Person;
 use App\Models\Report;
@@ -39,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
             'supply' => Supply::class,
             'inspection' => Inspection::class,
             'licence' => License::class,
+            'inspector_phone' => InspectorPhone::class,
             // For what an admin does to the system rather than to one record:
             // exporting data, blocking a device.
             'user' => User::class,

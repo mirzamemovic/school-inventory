@@ -83,6 +83,17 @@ final class EventAction
 
     public const DEVICE_UNBLOCKED = 'device.unblocked';
 
+    /*
+     * Phones whose safety checks count. Invited and withdrawn by an admin; set
+     * up from the phone itself, so that step is self-declared like any other
+     * public action.
+     */
+    public const INSPECTOR_PHONE_INVITED = 'inspector_phone.invited';
+
+    public const INSPECTOR_PHONE_CLAIMED = 'inspector_phone.claimed';
+
+    public const INSPECTOR_PHONE_WITHDRAWN = 'inspector_phone.withdrawn';
+
     /** @return array<int, string> */
     public static function all(): array
     {
