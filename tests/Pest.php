@@ -48,3 +48,18 @@ function something()
 {
     // ..
 }
+
+/**
+ * A valid-looking PNG of a few dozen bytes whose header claims the given size.
+ * Decoding one this large would exhaust memory, so it must be refused from the
+ * header alone.
+ */
+function pngDeclaring(int $width, int $height): string
+{
+    $chunk = fn (string $type, string $data) => pack('N', strlen($data)).$type.$data.pack('N', crc32($type.$data));
+
+    return "\x89PNG\r\n\x1a\n"
+        .$chunk('IHDR', pack('NNCCCCC', $width, $height, 8, 2, 0, 0, 0))
+        .$chunk('IDAT', gzcompress(str_repeat("\0", 64)))
+        .$chunk('IEND', '');
+}

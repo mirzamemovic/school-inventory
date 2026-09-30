@@ -59,6 +59,16 @@ it('requires a room, because every physical object is somewhere', function () {
         ->assertSessionHasErrors('room_id');
 });
 
+it('refuses a photo too large to decode on the asset form too', function () {
+    $this->actingAs($this->admin)
+        ->post(route('admin.assets.store'), assetPayload([
+            'photo' => \Illuminate\Http\UploadedFile::fake()->createWithContent('bomb.png', pngDeclaring(20000, 20000)),
+        ]))
+        ->assertSessionHasErrors('photo');
+
+    expect(Asset::query()->count())->toBe(0);
+});
+
 it('refuses an asset with no name or category', function () {
     $this->actingAs($this->admin)
         ->post(route('admin.assets.store'), assetPayload(['name' => '', 'category_id' => null]))

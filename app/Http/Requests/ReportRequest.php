@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\ReporterType;
 use App\Models\Setting;
+use App\Rules\DecodablePhoto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +28,7 @@ class ReportRequest extends FormRequest
             // a 55-year-old teacher abandons the process (spec section 7A).
             'problem' => ['nullable', Rule::in(['not_turning_on', 'damaged', 'missing'])],
             'description' => ['required_without:problem', 'nullable', 'string', 'max:2000'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:'.config('school.photos.max_kilobytes')],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:'.config('school.photos.max_kilobytes'), new DecodablePhoto],
         ];
     }
 

@@ -18,6 +18,7 @@ return [
     'sending' => 'Sending…',
     'show' => 'Show',
     'optional' => '(optional)',
+    'photo_too_large' => 'That photo is too big to use (:width × :height pixels). Take it again at the normal camera size.',
     'previous_page' => 'Previous',
     'next_page' => 'Next',
     'page_of' => 'Page :page of :pages',

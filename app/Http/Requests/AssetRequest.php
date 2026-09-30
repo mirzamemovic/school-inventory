@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
 use App\Enums\FundingSource;
+use App\Rules\DecodablePhoto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -27,7 +28,7 @@ class AssetRequest extends FormRequest
             'make' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'serial_number' => ['nullable', 'string', 'max:255'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:'.config('school.photos.max_kilobytes')],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:'.config('school.photos.max_kilobytes'), new DecodablePhoto],
 
             // Purchase
             'purchase_date' => ['nullable', 'date'],

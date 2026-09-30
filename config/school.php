@@ -44,6 +44,9 @@ return [
     */
     'photos' => [
         'max_kilobytes' => 5120,
+        // Decoded size, not file size: a tiny file can declare a huge canvas.
+        // Also capped at run time by what memory_limit leaves room for.
+        'max_pixels' => 50_000_000,
         'max_dimension' => 1600,
         'quality' => 78,
     ],

@@ -212,6 +212,19 @@ it('refuses a file that is not an image', function () {
     ]))->assertSessionHasErrors('photo');
 });
 
+it('refuses a tiny photo that claims an enormous canvas, before decoding it', function () {
+    // About eighty bytes declaring 20,000 × 20,000 pixels. Decoding it would
+    // try to allocate well over a gigabyte and take the request down with it;
+    // repeated on shared hosting, the whole site.
+    $asset = Asset::factory()->create();
+
+    $this->post(route('report.store', $asset->asset_tag), reportPayload([
+        'photo' => UploadedFile::fake()->createWithContent('bomb.png', pngDeclaring(20000, 20000)),
+    ]))->assertSessionHasErrors('photo');
+
+    expect(Report::query()->count())->toBe(0);
+});
+
 it('writes the report and the status change into the audit log', function () {
     $asset = Asset::factory()->create();
 
