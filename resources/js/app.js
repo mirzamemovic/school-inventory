@@ -7,6 +7,11 @@ window.htmx = htmx;
 // ships in the compiled bundle rather than being written into every page head.
 htmx.config.includeIndicatorStyles = false;
 
+// Nothing here uses hx-on or js: expressions. With eval off, htmx never needs
+// the Content-Security-Policy loosened for it.
+htmx.config.allowEval = false;
+htmx.config.allowScriptTags = false;
+
 // Keyboard behaviour for the admin search box. No-ops on pages without one.
 import './search';
 

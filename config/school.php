@@ -8,6 +8,12 @@ return [
     'tag_prefix' => env('SCHOOL_TAG_PREFIX', 'INV'),
 
     /*
+    | In production every plain-HTTP request is redirected to HTTPS. Only turn
+    | this off if the host already does the redirect itself and the two fight.
+    */
+    'force_https' => (bool) env('SCHOOL_FORCE_HTTPS', true),
+
+    /*
     | The prefix used for pre-printed blank labels, which have no category yet
     | and — because tags are write-once — will keep this prefix for ever.
     */

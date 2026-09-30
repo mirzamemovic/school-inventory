@@ -13,7 +13,7 @@
                 <h2 class="text-xl font-bold tracking-tight">{{ __('books.returns_heading', ['class' => $class]) }}</h2>
 
                 {{-- The class teacher will want this on paper (spec section 7C). --}}
-                <button type="button" onclick="window.print()" class="btn-secondary text-sm print:hidden">
+                <button type="button" data-print class="btn-secondary text-sm print:hidden">
                     {{ __('books.print') }}
                 </button>
             </div>

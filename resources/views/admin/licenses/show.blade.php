@@ -136,7 +136,7 @@
                 {{-- Destructive, so it sits last, apart, and never in navy. --}}
                 <form method="POST" action="{{ route('admin.licenses.destroy', $license) }}"
                       class="border-t border-grey-200 px-4 py-2"
-                      onsubmit="return confirm('{{ __('licenses.delete_confirm') }}')">
+                      data-confirm="{{ __('licenses.delete_confirm') }}">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="inline-flex min-h-tap w-full items-center justify-center text-sm font-medium text-status-broken underline decoration-status-broken/40 underline-offset-2 hover:decoration-status-broken">

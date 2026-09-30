@@ -5,7 +5,7 @@
 --}}
 <x-layouts.admin :back="route('admin.rooms.show', $room)" :back-label="$room->name">
     <div class="print:hidden">
-        <button type="button" onclick="window.print()" class="btn-primary mb-6">
+        <button type="button" data-print class="btn-primary mb-6">
             {{ __('common.print') }}
         </button>
     </div>
