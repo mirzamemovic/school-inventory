@@ -41,6 +41,10 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // "Keep me signed in" for two weeks, not Laravel's default of 400
+            // days: on a shared staffroom computer that was a year of admin
+            // access for whoever sat down next.
+            'remember' => (int) env('AUTH_REMEMBER_MINUTES', 20160),
         ],
     ],
 

@@ -16,7 +16,7 @@
 
         <label class="mb-6 flex min-h-tap cursor-pointer items-center gap-3 text-base text-grey-800">
             <input type="checkbox" name="remember" value="1" class="size-5 rounded border-grey-300">
-            {{ __('common.remember_me') }}
+            {{ __('common.remember_me', ['days' => intdiv((int) config('auth.guards.web.remember'), 1440)]) }}
         </label>
 
         <button type="submit" class="btn-primary w-full" data-busy-text="{{ __('common.working') }}">

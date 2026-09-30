@@ -24,25 +24,41 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /** Five attempts a minute per email address (spec section 13). */
+    /**
+     * Five attempts a minute per email address (spec section 13) — counted per
+     * email and IP address, so a stranger failing on purpose cannot keep the
+     * director locked out from everywhere. A second, looser ceiling per email
+     * across all addresses stops slow guessing spread over many machines.
+     */
+    public const ATTEMPTS_PER_MINUTE = 5;
+
+    public const ATTEMPTS_PER_HOUR_FOR_ACCOUNT = 100;
+
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+            RateLimiter::hit($this->throttleKey(), 60);
+            RateLimiter::hit($this->accountKey(), 3600);
 
             throw ValidationException::withMessages([
                 'email' => __('auth.failed'),
             ]);
         }
 
+        // Only this address's count is forgiven. The account-wide count is
+        // left to run out on its own, so a correct login cannot be used to
+        // wipe a stranger's guesses.
         RateLimiter::clear($this->throttleKey());
     }
 
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        $here = RateLimiter::tooManyAttempts($this->throttleKey(), self::ATTEMPTS_PER_MINUTE);
+        $everywhere = RateLimiter::tooManyAttempts($this->accountKey(), self::ATTEMPTS_PER_HOUR_FOR_ACCOUNT);
+
+        if (! $here && ! $everywhere) {
             return;
         }
 
@@ -50,13 +66,21 @@ class LoginRequest extends FormRequest
 
         throw ValidationException::withMessages([
             'email' => __('auth.throttle', [
-                'seconds' => RateLimiter::availableIn($this->throttleKey()),
+                'seconds' => max(
+                    $here ? RateLimiter::availableIn($this->throttleKey()) : 0,
+                    $everywhere ? RateLimiter::availableIn($this->accountKey()) : 0,
+                ),
             ]),
         ]);
     }
 
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|login');
+        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip().'|login');
+    }
+
+    private function accountKey(): string
+    {
+        return Str::transliterate(Str::lower($this->string('email')).'|login-account');
     }
 }

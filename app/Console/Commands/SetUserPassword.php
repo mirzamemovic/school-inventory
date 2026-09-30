@@ -3,21 +3,26 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Support\AdminPassword;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * The whole password reset story. Resetting by email needs email, and email is
  * not configured; with two accounts this is the right amount of machinery
  * (spec section 3.1).
+ *
+ * The usual reason to run it is "someone may know my password", so it also
+ * signs that account out everywhere: every open session and every "keep me
+ * signed in" cookie stops working, or a new password would lock nobody out.
  */
 class SetUserPassword extends Command
 {
     protected $signature = 'user:password {email}';
 
-    protected $description = 'Set the password for an admin account';
+    protected $description = 'Set the password for an admin account and sign it out everywhere';
 
     public function handle(): int
     {
@@ -30,11 +35,13 @@ class SetUserPassword extends Command
             return self::FAILURE;
         }
 
+        $this->line(__('auth.password_hint', ['length' => AdminPassword::MIN_LENGTH]));
+
         $password = $this->secret('Choose a new password');
 
         $validator = Validator::make(
             ['password' => $password],
-            ['password' => ['required', Password::min(12)->letters()->numbers()]],
+            ['password' => AdminPassword::rules($email)],
         );
 
         if ($validator->fails()) {
@@ -45,9 +52,16 @@ class SetUserPassword extends Command
             return self::FAILURE;
         }
 
-        $user->forceFill(['password' => Hash::make($password)])->save();
+        $user->forceFill([
+            'password' => Hash::make($password),
+            'remember_token' => null,
+        ])->save();
 
-        $this->info("Password changed for {$email}.");
+        if (config('session.driver') === 'database') {
+            DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
+        }
+
+        $this->info("Password changed for {$email}. It is now signed out everywhere.");
 
         return self::SUCCESS;
     }

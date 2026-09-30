@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Support\AdminPassword;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -29,11 +29,13 @@ class CreateAdminUser extends Command
             return self::FAILURE;
         }
 
+        $this->line(__('auth.password_hint', ['length' => AdminPassword::MIN_LENGTH]));
+
         $password = $this->secret('Choose a password');
 
         $validator = Validator::make(
             ['email' => $email, 'password' => $password],
-            ['email' => ['required', 'email'], 'password' => ['required', Password::min(12)->letters()->numbers()]],
+            ['email' => ['required', 'email'], 'password' => AdminPassword::rules($email)],
         );
 
         if ($validator->fails()) {

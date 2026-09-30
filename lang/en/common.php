@@ -27,5 +27,5 @@ return [
     'sign_out' => 'Sign out',
     'email' => 'Email',
     'password' => 'Password',
-    'remember_me' => 'Keep me signed in on this device',
+    'remember_me' => 'Keep me signed in on this device for :days days (not on a shared computer)',
 ];
