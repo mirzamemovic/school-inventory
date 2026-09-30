@@ -39,7 +39,13 @@ return [
     'overdue' => 'Overdue',
 
     'share_heading' => 'Send this list to the class teacher',
-    'share_help' => 'A read-only link, good until the end of the school year. Regenerate it by reloading this page if it gets passed around.',
+    'share_help' => 'A read-only link, good until the end of the school year. It shows students\' names, so send it to the class teacher only.',
+    'share_replace' => 'Make a new link',
+    'share_replace_help' => 'If this link has reached someone who should not have it, make a new one. The old link stops working straight away.',
+    'share_replace_confirm' => 'Make a new link? The one you sent before will stop working.',
+    'share_replaced' => 'New link made. The old one no longer works — send this one to the class teacher.',
+    'link_replaced_heading' => 'This link has been replaced',
+    'link_replaced_help' => 'The school has made a new link for this list. Ask the school office for it.',
     'print' => 'Print this list',
 
     'holdings' => 'Holding now',

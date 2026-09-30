@@ -36,6 +36,9 @@ final class EventAction
 
     public const BOOK_RETURNED = 'book.returned';
 
+    /* A class book-debt link was withdrawn and a new one made in its place. */
+    public const CLASS_LINK_REPLACED = 'book.class_link_replaced';
+
     public const SUPPLY_TAKEN = 'supply.taken';
 
     public const SUPPLY_RECOUNTED = 'supply.recounted';

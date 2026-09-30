@@ -68,6 +68,7 @@ return [
         'book' => [
             'issued' => ':actor issued books',
             'returned' => ':actor took books back',
+            'class_link_replaced' => ':actor made a new class book-debt link, and the old one stopped working',
         ],
         'supply' => [
             'taken' => ':actor took some',

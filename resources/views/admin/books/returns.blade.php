@@ -79,8 +79,18 @@
                 <h3 id="share-heading" class="font-bold">{{ __('books.share_heading') }}</h3>
                 <p class="mt-1 text-sm text-grey-600">{{ __('books.share_help') }}</p>
                 <input type="text" readonly value="{{ $shareUrl }}" aria-labelledby="share-heading"
-                       onfocus="this.select()"
+                       data-select-on-focus
                        class="mt-3 block min-h-tap w-full rounded border border-grey-300 bg-grey-50 px-3 font-mono text-sm text-grey-800">
+
+                {{-- A signed link cannot be recalled on its own; this moves the
+                     class on to a new one and the old stops working. --}}
+                <form method="POST" action="{{ route('admin.books.class-link.replace') }}" class="mt-4 border-t border-grey-200 pt-3"
+                      data-confirm="{{ __('books.share_replace_confirm') }}">
+                    @csrf
+                    <input type="hidden" name="class" value="{{ $class }}">
+                    <p class="mb-2 text-sm text-grey-600">{{ __('books.share_replace_help') }}</p>
+                    <button type="submit" class="btn-secondary text-sm">{{ __('books.share_replace') }}</button>
+                </form>
             </section>
         @endif
     @endif

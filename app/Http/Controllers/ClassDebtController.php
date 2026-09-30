@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Person;
+use App\Services\ClassDebtLinks;
 use App\Support\AcademicYear;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * The one exception to "there is no teacher login".
@@ -17,8 +20,15 @@ use Illuminate\Contracts\View\View;
  */
 class ClassDebtController extends Controller
 {
-    public function __invoke(string $class): View
+    public function __invoke(Request $request, string $class, ClassDebtLinks $links): View|Response
     {
+        // The signature is already checked by the route. This checks the link
+        // has not been replaced since: a replaced link names children and their
+        // debts to whoever it was forwarded to.
+        if (! $links->isCurrent($class, $request->query('v'))) {
+            return response()->view('public.link-replaced', status: 403);
+        }
+
         $students = Person::query()
             ->students()
             ->active()

@@ -5,10 +5,10 @@ use App\Models\AssetEvent;
 use App\Models\BookLoan;
 use App\Models\Person;
 use App\Models\User;
+use App\Services\ClassDebtLinks;
 use App\Support\AcademicYear;
 use App\Support\EventAction;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
     $this->admin = User::factory()->create();
@@ -97,7 +97,7 @@ it('opens a class debt list from a signed link, with no login', function () {
     $student = Person::factory()->inClass('10a')->create(['name' => 'Arben Krasniqi']);
     $loan = BookLoan::factory()->create(['person_id' => $student->id]);
 
-    $url = URL::temporarySignedRoute('class.debts', AcademicYear::endsOn(), ['class' => '10a']);
+    $url = app(ClassDebtLinks::class)->urlFor('10a');
 
     $this->get($url)
         ->assertOk()
@@ -111,7 +111,7 @@ it('refuses an unsigned or tampered class link', function () {
 
     $this->get('/class/10a')->assertForbidden();
 
-    $url = URL::temporarySignedRoute('class.debts', AcademicYear::endsOn(), ['class' => '10a']);
+    $url = app(ClassDebtLinks::class)->urlFor('10a');
 
     $this->get(str_replace('10a', '11b', $url))->assertForbidden();
 });
@@ -119,18 +119,53 @@ it('refuses an unsigned or tampered class link', function () {
 it('stops working once the school year is over', function () {
     Person::factory()->inClass('10a')->create();
 
-    $url = URL::temporarySignedRoute('class.debts', AcademicYear::endsOn(), ['class' => '10a']);
+    $url = app(ClassDebtLinks::class)->urlFor('10a');
 
     $this->travelTo(AcademicYear::endsOn()->addDay());
 
     $this->get($url)->assertForbidden();
 });
 
+it('withdraws every copy of a class link the moment a new one is made', function () {
+    // Signing the same class and expiry again gives the same link back, so a
+    // leaked link could never be recalled. Making a new one must kill the old.
+    $admin = User::factory()->create();
+    $student = Person::factory()->inClass('10a')->create(['name' => 'Arben Krasniqi']);
+    BookLoan::factory()->create(['person_id' => $student->id]);
+
+    $old = app(ClassDebtLinks::class)->urlFor('10a');
+
+    $this->actingAs($admin)
+        ->post(route('admin.books.class-link.replace'), ['class' => '10a'])
+        ->assertRedirect(route('admin.books.returns.form', ['class' => '10a']))
+        ->assertSessionHas('status', __('books.share_replaced'));
+
+    $new = app(ClassDebtLinks::class)->urlFor('10a');
+
+    expect($new)->not->toBe($old);
+
+    auth()->logout();
+
+    $this->get($old)->assertForbidden()->assertSee(__('books.link_replaced_heading'))->assertDontSee('Arben Krasniqi');
+    $this->get($new)->assertOk()->assertSee('Arben Krasniqi');
+
+    $event = AssetEvent::query()->where('action', EventAction::CLASS_LINK_REPLACED)->firstOrFail();
+
+    expect($event->actor_id)->toBe($admin->id)
+        ->and($event->meta['class'])->toBe('10a');
+});
+
+it('refuses to make a link for a class that does not exist', function () {
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.books.class-link.replace'), ['class' => '99z'])
+        ->assertSessionHasErrors('class');
+});
+
 it('shows nothing but book debts on the class link', function () {
     $student = Person::factory()->inClass('10a')->create();
     BookLoan::factory()->create(['person_id' => $student->id]);
 
-    $url = URL::temporarySignedRoute('class.debts', AcademicYear::endsOn(), ['class' => '10a']);
+    $url = app(ClassDebtLinks::class)->urlFor('10a');
 
     $this->get($url)
         ->assertOk()
@@ -142,7 +177,7 @@ it('shows nothing but book debts on the class link', function () {
 it('leaves students who owe nothing off the class list', function () {
     Person::factory()->inClass('10a')->create(['name' => 'Owes nothing']);
 
-    $url = URL::temporarySignedRoute('class.debts', AcademicYear::endsOn(), ['class' => '10a']);
+    $url = app(ClassDebtLinks::class)->urlFor('10a');
 
     $this->get($url)
         ->assertOk()

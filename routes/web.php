@@ -160,6 +160,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('books/issue', [BookController::class, 'issue'])->name('books.issue');
     Route::get('books/returns', [BookController::class, 'returnsForm'])->name('books.returns.form');
     Route::post('books/returns', [BookController::class, 'takeBack'])->name('books.returns');
+    Route::post('books/returns/link', [BookController::class, 'replaceClassLink'])->name('books.class-link.replace');
     Route::get('books/student/{person}', [BookController::class, 'student'])->name('books.student');
     Route::put('books/student/{person}', [BookController::class, 'updateStudent'])->name('books.student.update');
 

@@ -12,6 +12,39 @@
 
 const RELEASE_AFTER_MS = 8000;
 
+/*
+ * The few behaviours that used to be inline onclick/onsubmit/onfocus
+ * attributes. They live here so the Content-Security-Policy can refuse every
+ * inline script: then even text that slipped past escaping could not run on
+ * the director's screen.
+ *
+ *   data-confirm="…"        on a form: ask before submitting
+ *   data-print              on a button: open the print dialog
+ *   data-select-on-focus    on an input: select its contents to copy
+ */
+
+// Registered before the busy handler below, so a cancelled confirm never
+// leaves a button looking busy.
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+
+    if (form instanceof HTMLFormElement && form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+        event.preventDefault();
+    }
+});
+
+document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-print]')) {
+        window.print();
+    }
+});
+
+document.addEventListener('focusin', (event) => {
+    if (event.target.matches?.('[data-select-on-focus]')) {
+        event.target.select();
+    }
+});
+
 function release(form) {
     delete form.dataset.submitting;
 

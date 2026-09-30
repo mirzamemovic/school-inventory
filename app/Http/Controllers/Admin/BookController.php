@@ -8,17 +8,20 @@ use App\Models\BookLoan;
 use App\Models\BookTitle;
 use App\Models\Person;
 use App\Services\BookService;
+use App\Services\ClassDebtLinks;
 use App\Support\AcademicYear;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 
 class BookController extends Controller
 {
-    public function __construct(private readonly BookService $books) {}
+    public function __construct(
+        private readonly BookService $books,
+        private readonly ClassDebtLinks $links,
+    ) {}
 
     /** Title, subject, grade, copies owned / out / available. */
     public function titles(Request $request): View
@@ -96,8 +99,25 @@ class BookController extends Controller
             'classes' => $this->books->classes(),
             'class' => $class,
             'students' => $students,
-            'shareUrl' => $class ? $this->classLinkFor($class) : null,
+            'shareUrl' => $class ? $this->links->urlFor($class) : null,
         ]);
+    }
+
+    /**
+     * The link has gone somewhere it should not. Every copy of it stops working
+     * at once, and the Returns screen shows the new one.
+     */
+    public function replaceClassLink(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'class' => ['required', 'string', Rule::in($this->books->classes()->all())],
+        ]);
+
+        $this->links->replace($validated['class'], $request->user());
+
+        return redirect()
+            ->route('admin.books.returns.form', ['class' => $validated['class']])
+            ->with('status', __('books.share_replaced'));
     }
 
     public function takeBack(Request $request): RedirectResponse
@@ -156,19 +176,6 @@ class BookController extends Controller
         return redirect()
             ->route('admin.books.student', $person)
             ->with('status', __('books.changes_saved'));
-    }
-
-    /**
-     * A read-only link the class teacher can be sent over WhatsApp, rather
-     * than twenty accounts and twenty forgotten passwords (spec section 3.1).
-     */
-    private function classLinkFor(string $class): string
-    {
-        return URL::temporarySignedRoute(
-            'class.debts',
-            AcademicYear::endsOn(),
-            ['class' => $class],
-        );
     }
 
     /**
