@@ -73,6 +73,13 @@ it('fails closed if the document root is ever set to the project folder', functi
 
     expect($rules)->toContain('Require all denied')
         ->and($rules)->toContain('Deny from all');
+
+    // Apache applies parent folders' .htaccess too, so without an explicit
+    // grant here the denial above would take the whole site down.
+    $public = file_get_contents(public_path('.htaccess'));
+
+    expect($public)->toContain('Require all granted')
+        ->and($public)->toContain('Allow from all');
 });
 
 it('keeps report photos behind the admin login', function () {

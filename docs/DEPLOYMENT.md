@@ -84,10 +84,12 @@ https://school.example/              → the login screen
 If `.env` downloads, stop and fix the document root before putting any real data
 in.
 
-The project folder carries its own `.htaccess` that denies everything. It is
-insurance: if the document root is ever set to the project folder by mistake,
-the site stops working instead of handing out `.env`. Do not delete it, and do
-not "fix" a broken site by removing it — fix the document root.
+The project folder carries its own `.htaccess` that denies everything, and
+`public/.htaccess` grants access back to that one folder. It is insurance: if the
+document root is ever set to the project folder by mistake, nothing outside
+`public/` — `.env`, `storage/` — can be fetched. Upload both files and keep them
+together: without the grant in `public/.htaccess`, Apache applies the parent's
+denial to the whole site.
 
 ---
 

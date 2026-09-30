@@ -3,9 +3,12 @@
 # The domain's document root must point at /public (see DEPLOYMENT.md). If it
 # ever points at this folder instead, every file here would be downloadable —
 # .env with the database password and APP_KEY, storage/ with report photos,
-# the SQLite file on a test copy. This makes that mistake fail closed: the site
-# stops working, and nothing leaks. With the document root set correctly,
-# Apache never reads this file.
+# the SQLite file on a test copy. This makes that mistake fail closed: nothing
+# outside public/ can be fetched.
+#
+# Apache applies .htaccess files from parent folders too, so this rule reaches
+# public/ as well; public/.htaccess grants access back for that one folder.
+# Keep the two together.
 
 <IfModule mod_authz_core.c>
     Require all denied
