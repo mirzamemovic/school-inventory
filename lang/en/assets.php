@@ -20,6 +20,7 @@ return [
     'retired' => 'Retired. It stays in the records with its full history.',
     'assigned' => ':name is now answerable for this item.',
     'unassigned_person' => 'Nobody is answerable for this item now.',
+    'assign_inactive' => 'That person is no longer active. Choose someone else, or reactivate them in Manage → People first.',
 
     'groups' => [
         'identity' => 'What it is',

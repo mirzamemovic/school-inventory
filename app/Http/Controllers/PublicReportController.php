@@ -20,6 +20,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 
 class PublicReportController extends Controller
 {
@@ -73,11 +74,17 @@ class PublicReportController extends Controller
 
         $this->device->remember($token, $name, $type);
 
-        $openReport = $asset->openReport();
+        // The asset row is locked while deciding whether a report is already
+        // open, so two people reporting the same projector at the same moment
+        // make one report with an addition, not two whose snapshots disagree.
+        return DB::transaction(function () use ($request, $asset, $name, $type, $token) {
+            $asset = Asset::query()->with('room')->lockForUpdate()->findOrFail($asset->id);
+            $openReport = $asset->openReport();
 
-        return $openReport
-            ? $this->addToExistingReport($request, $openReport, $name, $type, $token)
-            : $this->createReport($request, $asset, $name, $type, $token);
+            return $openReport
+                ? $this->addToExistingReport($request, $openReport, $name, $type, $token)
+                : $this->createReport($request, $asset, $name, $type, $token);
+        });
     }
 
     /**
@@ -141,7 +148,9 @@ class PublicReportController extends Controller
             'reference' => $report->reference,
         ], $actor);
 
-        ReportCreated::dispatch($report);
+        // Only once the report is really saved: a future email listener must
+        // never announce a report that was rolled back.
+        DB::afterCommit(fn () => ReportCreated::dispatch($report));
 
         return redirect()
             ->route('report.status', $report->reference)

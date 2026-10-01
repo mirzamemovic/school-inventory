@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Support\EventAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -28,12 +29,17 @@ class AssetActionController extends Controller
         ]);
 
         $from = $asset->room?->name;
-        $asset->update($validated);
         $to = Room::query()->find($validated['room_id'])?->name;
 
-        $this->log->record($asset, EventAction::ASSET_MOVED, [
-            'room' => ['from' => $from, 'to' => $to],
-        ]);
+        // A move with no record of it is the one thing an inventory must not
+        // allow, so the change and its log row stand or fall together.
+        DB::transaction(function () use ($asset, $validated, $from, $to) {
+            $asset->update($validated);
+
+            $this->log->record($asset, EventAction::ASSET_MOVED, [
+                'room' => ['from' => $from, 'to' => $to],
+            ]);
+        });
 
         return back()->with('status', __('assets.moved', ['room' => $to]));
     }
@@ -45,17 +51,21 @@ class AssetActionController extends Controller
      */
     public function assign(Request $request, Asset $asset): RedirectResponse
     {
+        // Only someone still at the school, as the list on the page offers.
         $validated = $request->validate([
-            'assigned_person_id' => ['nullable', Rule::exists('people', 'id')],
-        ]);
+            'assigned_person_id' => ['nullable', Rule::exists('people', 'id')->where('active', true)],
+        ], ['assigned_person_id.exists' => __('assets.assign_inactive')]);
 
         $from = $asset->assignedPerson?->name;
-        $asset->update(['assigned_person_id' => $validated['assigned_person_id'] ?? null]);
         $to = Person::query()->find($validated['assigned_person_id'] ?? null)?->name;
 
-        $this->log->record($asset, EventAction::ASSET_ASSIGNED, [
-            'person' => ['from' => $from, 'to' => $to],
-        ]);
+        DB::transaction(function () use ($asset, $validated, $from, $to) {
+            $asset->update(['assigned_person_id' => $validated['assigned_person_id'] ?? null]);
+
+            $this->log->record($asset, EventAction::ASSET_ASSIGNED, [
+                'person' => ['from' => $from, 'to' => $to],
+            ]);
+        });
 
         return back()->with('status', $to
             ? __('assets.assigned', ['name' => $to])
@@ -69,11 +79,14 @@ class AssetActionController extends Controller
         ]);
 
         $from = $asset->status;
-        $asset->update($validated);
 
-        $this->log->record($asset, EventAction::ASSET_STATUS_CHANGED, [
-            'status' => ['from' => $from->value, 'to' => $asset->status->value],
-        ]);
+        DB::transaction(function () use ($asset, $validated, $from) {
+            $asset->update($validated);
+
+            $this->log->record($asset, EventAction::ASSET_STATUS_CHANGED, [
+                'status' => ['from' => $from->value, 'to' => $asset->status->value],
+            ]);
+        });
 
         return back()->with('status', __('assets.status_changed', ['status' => $asset->status->label()]));
     }
@@ -84,15 +97,17 @@ class AssetActionController extends Controller
             'disposal_method' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $asset->update([
-            'status' => AssetStatus::Retired,
-            'disposal_date' => now()->toDateString(),
-            'disposal_method' => $validated['disposal_method'] ?? null,
-        ]);
+        DB::transaction(function () use ($asset, $validated) {
+            $asset->update([
+                'status' => AssetStatus::Retired,
+                'disposal_date' => now()->toDateString(),
+                'disposal_method' => $validated['disposal_method'] ?? null,
+            ]);
 
-        $this->log->record($asset, EventAction::ASSET_RETIRED, [
-            'disposal_method' => $validated['disposal_method'] ?? null,
-        ]);
+            $this->log->record($asset, EventAction::ASSET_RETIRED, [
+                'disposal_method' => $validated['disposal_method'] ?? null,
+            ]);
+        });
 
         return back()->with('status', __('assets.retired'));
     }

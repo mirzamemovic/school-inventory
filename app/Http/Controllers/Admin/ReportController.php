@@ -9,9 +9,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Services\AuditLogger;
 use App\Support\EventAction;
+use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ReportController extends Controller
@@ -75,14 +77,18 @@ class ReportController extends Controller
 
     public function acknowledge(Report $report): RedirectResponse
     {
-        $report->forceFill([
-            'status' => ReportStatus::InProgress,
-            'acknowledged_at' => $report->acknowledged_at ?? now(),
-        ])->save();
+        $acted = $this->whileStillOpen($report, function (Report $report) {
+            $report->forceFill([
+                'status' => ReportStatus::InProgress,
+                'acknowledged_at' => $report->acknowledged_at ?? now(),
+            ])->save();
 
-        $this->log->record($report, EventAction::REPORT_ACKNOWLEDGED);
+            $this->log->record($report, EventAction::REPORT_ACKNOWLEDGED);
+        });
 
-        return back()->with('status', __('reports.acknowledged'));
+        return $acted
+            ? back()->with('status', __('reports.acknowledged'))
+            : back()->withErrors(['report' => __('reports.already_closed')]);
     }
 
     public function resolve(Request $request, Report $report): RedirectResponse
@@ -105,20 +111,49 @@ class ReportController extends Controller
             'condition' => ['nullable', Rule::enum(AssetCondition::class)],
         ]);
 
-        $report->forceFill([
-            'status' => $status,
-            'resolved_at' => now(),
-            'resolved_by' => auth()->id(),
-            'resolution_note' => $validated['resolution_note'] ?? null,
-        ])->save();
+        $acted = $this->whileStillOpen($report, function (Report $report) use ($status, $action, $validated) {
+            $report->forceFill([
+                'status' => $status,
+                'resolved_at' => now(),
+                'resolved_by' => auth()->id(),
+                'resolution_note' => $validated['resolution_note'] ?? null,
+            ])->save();
 
-        $this->log->record($report, $action, array_filter([
-            'note' => $validated['resolution_note'] ?? null,
-        ]));
+            $this->log->record($report, $action, array_filter([
+                'note' => $validated['resolution_note'] ?? null,
+            ]));
 
-        $this->restoreAsset($report, $validated);
+            $this->restoreAsset($report, $validated);
+        });
 
-        return back()->with('status', $message);
+        return $acted
+            ? back()->with('status', $message)
+            : back()->withErrors(['report' => __('reports.already_closed')]);
+    }
+
+    /**
+     * The three buttons only act on a report that is still open, checked on
+     * the server under a row lock, not only by hiding them on the page.
+     * Otherwise a second "Fixed" — from a stale tab, or the other admin at the
+     * same moment — would overwrite who closed it and when, and put the
+     * asset back to an old snapshot even if a new fault had been reported on
+     * it since.
+     *
+     * @param  Closure(Report): void  $change
+     */
+    private function whileStillOpen(Report $report, Closure $change): bool
+    {
+        return DB::transaction(function () use ($report, $change) {
+            $report = Report::query()->lockForUpdate()->findOrFail($report->getKey());
+
+            if (! $report->isOpen()) {
+                return false;
+            }
+
+            $change($report);
+
+            return true;
+        });
     }
 
     /**

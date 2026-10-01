@@ -34,6 +34,7 @@ return [
     'acknowledged' => 'Marked as being worked on.',
     'resolved' => 'Marked as fixed. The item has gone back to where it was.',
     'dismissed' => 'Closed as not a problem. The item has gone back to where it was.',
+    'already_closed' => 'This report had already been closed, so nothing was changed. The page below shows how it was closed.',
     'note' => 'Note (optional)',
     'note_placeholder' => 'What was done, in one line.',
     'note_help' => 'The person who reported this can read the note on their report page, so write it for them.',
