@@ -12,6 +12,7 @@ use App\Support\EventAction;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Enum;
 
 class RoomController extends Controller
@@ -55,7 +56,11 @@ class RoomController extends Controller
 
     public function markCounted(Room $room): RedirectResponse
     {
-        $room->update(['last_counted_at' => now()]);
+        DB::transaction(function () use ($room) {
+            $room->update(['last_counted_at' => now()]);
+
+            $this->log->record($room, EventAction::ROOM_COUNTED, ['name' => $room->name]);
+        });
 
         return back()->with('status', __('rooms.marked_counted'));
     }
@@ -68,26 +73,51 @@ class RoomController extends Controller
             'condition' => ['required', new Enum(AssetCondition::class)],
         ]);
 
-        $room->contents()->create($validated);
+        DB::transaction(function () use ($room, $validated) {
+            $content = $room->contents()->create($validated);
+
+            // Furniture has no history of its own; it is counted per room.
+            $this->log->record($room, EventAction::ROOM_FURNITURE_ADDED, [
+                'name' => $room->name,
+                'item' => $content->item_name,
+                'quantity' => $content->quantity,
+                'condition' => $content->condition?->value,
+            ]);
+        });
 
         return back()->with('status', __('rooms.furniture_added'));
     }
 
+    /**
+     * The route binds the furniture line within this room only, so a changed
+     * address cannot alter another room's furniture under this room's name.
+     */
     public function updateContent(Request $request, Room $room, RoomContent $content): RedirectResponse
     {
         $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:0', 'max:1000'],
         ]);
 
-        if ((int) $validated['quantity'] === 0) {
-            $content->delete();
+        $before = $content->quantity;
+        $after = (int) $validated['quantity'];
 
-            return back()->with('status', __('rooms.furniture_removed'));
-        }
+        DB::transaction(function () use ($room, $content, $before, $after) {
+            if ($after === 0) {
+                $content->delete();
+            } else {
+                $content->update(['quantity' => $after]);
+            }
 
-        $content->update($validated);
+            if ($before !== $after) {
+                $this->log->record($room, EventAction::ROOM_FURNITURE_CHANGED, [
+                    'quantity' => ['from' => $before, 'to' => $after],
+                    'name' => $room->name,
+                    'item' => $content->item_name,
+                ]);
+            }
+        });
 
-        return back()->with('status', __('rooms.changes_saved'));
+        return back()->with('status', __($after === 0 ? 'rooms.furniture_removed' : 'rooms.changes_saved'));
     }
 
     public function create(): View
@@ -97,7 +127,16 @@ class RoomController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Room::query()->create($this->validated($request));
+        $validated = $this->validated($request);
+
+        DB::transaction(function () use ($validated) {
+            $room = Room::query()->create($validated);
+
+            $this->log->record($room, EventAction::ROOM_CREATED, [
+                'name' => $room->name,
+                'type' => $room->type?->value,
+            ]);
+        });
 
         return redirect()->route('admin.rooms.index')->with('status', __('rooms.added'));
     }
@@ -109,9 +148,26 @@ class RoomController extends Controller
 
     public function update(Request $request, Room $room): RedirectResponse
     {
-        $room->update($this->validated($request));
+        $validated = $this->validated($request);
+
+        DB::transaction(function () use ($room, $validated) {
+            $before = $this->snapshot($room);
+            $room->update($validated);
+
+            $this->log->recordChanges($room, EventAction::ROOM_EDITED, $before, $this->snapshot($room), $room->name);
+        });
 
         return redirect()->route('admin.rooms.index')->with('status', __('rooms.changes_saved'));
+    }
+
+    /** @return array<string, mixed> */
+    private function snapshot(Room $room): array
+    {
+        return [
+            'name' => $room->name,
+            'floor' => $room->floor,
+            'type' => $room->type?->value,
+        ];
     }
 
     /** @return array<string, mixed> */

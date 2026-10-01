@@ -3,11 +3,14 @@
 namespace App\Providers;
 
 use App\Models\Asset;
+use App\Models\BookTitle;
+use App\Models\Category;
 use App\Models\Inspection;
 use App\Models\InspectorPhone;
 use App\Models\License;
 use App\Models\Person;
 use App\Models\Report;
+use App\Models\Room;
 use App\Models\Supply;
 use App\Models\User;
 use App\Services\DeviceIdentity;
@@ -41,6 +44,9 @@ class AppServiceProvider extends ServiceProvider
             'inspection' => Inspection::class,
             'licence' => License::class,
             'inspector_phone' => InspectorPhone::class,
+            'room' => Room::class,
+            'category' => Category::class,
+            'book_title' => BookTitle::class,
             // An account, acted on in Manage → Users; and the admin themselves,
             // for what they do to the system rather than to one record:
             // exporting data, blocking a device.

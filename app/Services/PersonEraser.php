@@ -44,25 +44,60 @@ class PersonEraser
     {
         return Inspection::query()
             ->with('asset')
-            ->where('inspector_name', $person->name)
+            ->whereIn('inspector_name', $this->identitiesOf($person)['names'])
             ->orderBy('inspected_at')
             ->get();
+    }
+
+    /**
+     * Every name and email address this person has had. An edit logs the old
+     * values (person.edited), so a student renamed from "Ana B" to "Ana
+     * Berisha" still has the old name in that row and in anything filed under
+     * it before. Erasing only the current name would leave those behind.
+     *
+     * @return array{names: array<int, string>, emails: array<int, string>}
+     */
+    public function identitiesOf(Person $person): array
+    {
+        $edits = DB::table('asset_events')
+            ->where('subject_type', $person->getMorphClass())
+            ->where('subject_id', $person->getKey())
+            ->where('action', EventAction::PERSON_EDITED)
+            ->pluck('meta')
+            ->map(fn ($meta) => json_decode((string) $meta, true))
+            ->filter(fn ($meta) => is_array($meta));
+
+        $both = fn (string $field) => $edits->flatMap(fn (array $meta) => [
+            $meta[$field]['from'] ?? null,
+            $meta[$field]['to'] ?? null,
+        ]);
+
+        $distinct = fn ($values) => collect($values)
+            ->filter(fn ($value) => is_string($value) && trim($value) !== '')
+            ->unique(fn (string $value) => mb_strtolower(trim($value)))
+            ->values()
+            ->all();
+
+        return [
+            'names' => $distinct($both('name')->prepend($person->name)),
+            'emails' => $distinct($both('email')->prepend($person->email)),
+        ];
     }
 
     /** @return array<string, int> what was rewritten, for the operator to read back */
     public function erase(Person $person): array
     {
-        $name = $person->name;
+        ['names' => $names, 'emails' => $emails] = $this->identitiesOf($person);
         $pseudonym = $this->pseudonymFor($person);
-        $deviceTokens = $this->deviceTokensOf($person, $name);
+        $deviceTokens = $this->deviceTokensOf($names);
 
-        return DB::transaction(function () use ($person, $name, $pseudonym, $deviceTokens) {
+        return DB::transaction(function () use ($person, $names, $emails, $pseudonym, $deviceTokens) {
             $counts = [
                 'person' => 1,
-                'reports' => $this->scrubReports($name, $pseudonym),
-                'inspections' => $this->scrubInspections($name, $pseudonym),
-                'events_actor' => $this->scrubEventActors($name, $pseudonym),
-                'events_meta' => $this->scrubEventMeta($name, $pseudonym),
+                'reports' => $this->scrubReports($names, $pseudonym),
+                'inspections' => $this->scrubInspections($names, $pseudonym),
+                'events_actor' => $this->scrubEventActors($names, $pseudonym),
+                'events_meta' => $this->scrubEventMeta([...$names, ...$emails], $pseudonym),
                 'identifiers' => $this->nullIdentifiers($deviceTokens),
                 'loans_kept' => $person->loans()->count(),
             ];
@@ -93,38 +128,42 @@ class PersonEraser
      * singles out an individual in the same way a cookie id does, so it is
      * personal data and goes with them.
      *
+     * @param  array<int, string>  $names
      * @return array<int, string>
      */
-    private function deviceTokensOf(Person $person, string $name): array
+    private function deviceTokensOf(array $names): array
     {
         return collect()
-            ->merge(DB::table('reports')->where('reporter_name', $name)->pluck('device_token'))
-            ->merge(DB::table('asset_events')->where('actor_name', $name)->pluck('device_token'))
-            ->merge(DB::table('inspections')->where('inspector_name', $name)->pluck('device_token'))
+            ->merge(DB::table('reports')->whereIn('reporter_name', $names)->pluck('device_token'))
+            ->merge(DB::table('asset_events')->whereIn('actor_name', $names)->pluck('device_token'))
+            ->merge(DB::table('inspections')->whereIn('inspector_name', $names)->pluck('device_token'))
             ->filter()
             ->unique()
             ->values()
             ->all();
     }
 
-    private function scrubReports(string $name, string $pseudonym): int
+    /** @param  array<int, string>  $names */
+    private function scrubReports(array $names, string $pseudonym): int
     {
         return DB::table('reports')
-            ->where('reporter_name', $name)
+            ->whereIn('reporter_name', $names)
             ->update(['reporter_name' => $pseudonym]);
     }
 
-    private function scrubInspections(string $name, string $pseudonym): int
+    /** @param  array<int, string>  $names */
+    private function scrubInspections(array $names, string $pseudonym): int
     {
         return DB::table('inspections')
-            ->where('inspector_name', $name)
+            ->whereIn('inspector_name', $names)
             ->update(['inspector_name' => $pseudonym]);
     }
 
-    private function scrubEventActors(string $name, string $pseudonym): int
+    /** @param  array<int, string>  $names */
+    private function scrubEventActors(array $names, string $pseudonym): int
     {
         return DB::table('asset_events')
-            ->where('actor_name', $name)
+            ->whereIn('actor_name', $names)
             ->update(['actor_name' => $pseudonym, 'actor_id' => null]);
     }
 
@@ -137,14 +176,15 @@ class PersonEraser
      * name of an asset in asset.created and of a licence in licence.created,
      * destroying equipment history to satisfy a request about a person.
      */
-    private function scrubEventMeta(string $name, string $pseudonym): int
+    /** @param  array<int, string>  $needles  every name and address the person has had */
+    private function scrubEventMeta(array $needles, string $pseudonym): int
     {
         $rewritten = 0;
 
         DB::table('asset_events')
             ->whereNotNull('meta')
             ->orderBy('id')
-            ->chunkById(500, function ($rows) use ($name, $pseudonym, &$rewritten) {
+            ->chunkById(500, function ($rows) use ($needles, $pseudonym, &$rewritten) {
                 foreach ($rows as $row) {
                     $meta = json_decode((string) $row->meta, true);
 
@@ -152,7 +192,7 @@ class PersonEraser
                         continue;
                     }
 
-                    $scrubbed = $this->replaceInValues($meta, $name, $pseudonym);
+                    $scrubbed = $this->replaceInValues($meta, $needles, $pseudonym);
 
                     if ($scrubbed === $meta) {
                         continue;
@@ -170,24 +210,26 @@ class PersonEraser
     }
 
     /**
-     * Walk the structure and replace any string value equal to the name.
-     * Compared trimmed and case-insensitively, so "ana b" and " Ana B " both go.
+     * Walk the structure and replace any string value equal to one of the
+     * needles. Compared trimmed and case-insensitively, so "ana b" and
+     * " Ana B " both go.
      *
      * @param  array<mixed>  $meta
+     * @param  array<int, string>  $needles
      * @return array<mixed>
      */
-    private function replaceInValues(array $meta, string $name, string $pseudonym): array
+    private function replaceInValues(array $meta, array $needles, string $pseudonym): array
     {
-        $needle = mb_strtolower(trim($name));
+        $needles = array_map(fn (string $needle) => mb_strtolower(trim($needle)), $needles);
 
         foreach ($meta as $key => $value) {
             if (is_array($value)) {
-                $meta[$key] = $this->replaceInValues($value, $name, $pseudonym);
+                $meta[$key] = $this->replaceInValues($value, $needles, $pseudonym);
 
                 continue;
             }
 
-            if (is_string($value) && mb_strtolower(trim($value)) === $needle) {
+            if (is_string($value) && in_array(mb_strtolower(trim($value)), $needles, true)) {
                 $meta[$key] = $pseudonym;
             }
         }

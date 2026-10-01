@@ -68,15 +68,22 @@ return [
         'book' => [
             'issued' => ':actor issued books',
             'returned' => ':actor took books back',
+            'title_added' => ':actor added the book :name',
+            'title_edited' => ':actor changed the book :name from :from to :to',
             'class_link_replaced' => ':actor made a new class book-debt link, and the old one stopped working',
         ],
         'supply' => [
             'taken' => ':actor took some',
             'recounted' => ':actor recounted it',
+            'added' => ':actor added the supply :name',
+            'edited' => ':actor changed the supply :name from :from to :to',
         ],
+        // People are not named in these sentences, as in the ones before them.
         'person' => [
             'added' => ':actor added a person',
+            'edited' => ':actor changed a person\'s details',
             'deactivated' => ':actor deactivated a person',
+            'reactivated' => ':actor reactivated a person',
             'erased' => ':actor erased a person record at their request',
         ],
         'data' => [
@@ -97,6 +104,20 @@ return [
             'edited' => ':actor changed :from to :to',
             'renewed' => ':actor renewed it from :from to :to',
             'deleted' => ':actor removed this license',
+        ],
+        'room' => [
+            'created' => ':actor added the room :name',
+            'edited' => ':actor changed the room :name from :from to :to',
+            'counted' => ':actor marked :name as counted',
+            'furniture_added' => ':actor added :item to :name',
+            'furniture_changed' => ':actor changed the number of :item in :name from :from to :to',
+        ],
+        'category' => [
+            'created' => ':actor added the category :name',
+            'edited' => ':actor changed the category :name from :from to :to',
+        ],
+        'settings' => [
+            'changed' => ':actor changed a setting from :from to :to',
         ],
         'user' => [
             'created' => ':actor added :account as a user',

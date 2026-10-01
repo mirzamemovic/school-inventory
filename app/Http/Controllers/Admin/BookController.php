@@ -7,13 +7,16 @@ use App\Http\Controllers\Controller;
 use App\Models\BookLoan;
 use App\Models\BookTitle;
 use App\Models\Person;
+use App\Services\AuditLogger;
 use App\Services\BookService;
 use App\Services\ClassDebtLinks;
 use App\Support\AcademicYear;
+use App\Support\EventAction;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class BookController extends Controller
@@ -21,6 +24,7 @@ class BookController extends Controller
     public function __construct(
         private readonly BookService $books,
         private readonly ClassDebtLinks $links,
+        private readonly AuditLogger $log,
     ) {}
 
     /** Title, subject, grade, copies owned / out / available. */
@@ -39,7 +43,17 @@ class BookController extends Controller
 
     public function storeTitle(Request $request): RedirectResponse
     {
-        BookTitle::query()->create($this->validatedTitle($request));
+        $validated = $this->validatedTitle($request);
+
+        DB::transaction(function () use ($validated) {
+            $title = BookTitle::query()->create($validated);
+
+            $this->log->record($title, EventAction::BOOK_TITLE_ADDED, [
+                'name' => $title->title,
+                'grade' => $title->grade,
+                'total_copies' => $title->total_copies,
+            ]);
+        });
 
         return redirect()->route('admin.books.titles')->with('status', __('books.title_added'));
     }
@@ -51,7 +65,16 @@ class BookController extends Controller
 
     public function updateTitle(Request $request, BookTitle $title): RedirectResponse
     {
-        $title->update($this->validatedTitle($request));
+        $validated = $this->validatedTitle($request);
+
+        DB::transaction(function () use ($title, $validated) {
+            $before = $this->titleSnapshot($title);
+            $title->update($validated);
+
+            // The book's title is stored under "name" so the sentence in
+            // Activity can say which book, the same as for a room or supply.
+            $this->log->recordChanges($title, EventAction::BOOK_TITLE_EDITED, $before, $this->titleSnapshot($title), $title->title);
+        });
 
         return redirect()->route('admin.books.titles')->with('status', __('books.changes_saved'));
     }
@@ -211,6 +234,18 @@ class BookController extends Controller
             ->groupBy('person_id')
             ->map(fn ($loans) => $loans->pluck('book_title_id')->all())
             ->all();
+    }
+
+    /** @return array<string, mixed> */
+    private function titleSnapshot(BookTitle $title): array
+    {
+        return [
+            'name' => $title->title,
+            'subject' => $title->subject,
+            'grade' => $title->grade,
+            'isbn' => $title->isbn,
+            'total_copies' => $title->total_copies,
+        ];
     }
 
     /** @return array<string, mixed> */

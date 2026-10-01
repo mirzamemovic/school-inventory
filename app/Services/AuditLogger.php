@@ -52,4 +52,23 @@ class AuditLogger
 
         return $changes;
     }
+
+    /**
+     * Log an edit, but only if something actually changed. `$name` says which
+     * record it was, for the sentence in Activity; if the name itself is one
+     * of the changes, its before/after pair is kept instead.
+     *
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
+    public function recordChanges(Model $subject, string $action, array $before, array $after, ?string $name = null): ?AssetEvent
+    {
+        $changes = $this->changes($before, $after);
+
+        if ($changes === []) {
+            return null;
+        }
+
+        return $this->record($subject, $action, $changes + ($name === null ? [] : ['name' => $name]));
+    }
 }

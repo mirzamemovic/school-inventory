@@ -274,7 +274,8 @@ Route::middleware(['auth', 'account.active'])->prefix('admin')->name('admin.')->
     Route::get('rooms/{room}/sheet', [RoomController::class, 'inventorySheet'])->name('rooms.sheet');
     Route::post('rooms/{room}/counted', [RoomController::class, 'markCounted'])->name('rooms.counted');
     Route::post('rooms/{room}/contents', [RoomController::class, 'storeContent'])->name('rooms.contents.store');
-    Route::put('rooms/{room}/contents/{content}', [RoomController::class, 'updateContent'])->name('rooms.contents.update');
+    // Scoped: the furniture line must belong to this room, or it is a 404.
+    Route::put('rooms/{room}/contents/{content}', [RoomController::class, 'updateContent'])->scopeBindings()->name('rooms.contents.update');
     Route::get('rooms/{room}/edit', [RoomController::class, 'edit'])->name('rooms.edit');
     Route::put('rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
 

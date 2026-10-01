@@ -11,7 +11,7 @@
             <div class="col-span-2 sm:col-span-1">
                 <label for="action" class="mb-1 block text-sm font-semibold text-grey-800">{{ __('activity.filter_action') }}</label>
                 <x-select name="action" id="action" :selected="request('action')" :placeholder="__('common.none')"
-                          :options="collect($actions)->mapWithKeys(fn ($a) => [$a => __('activity.sentence.'.$a, ['actor' => '', 'from' => '…', 'to' => '…', 'account' => '…'])])"
+                          :options="collect($actions)->mapWithKeys(fn ($a) => [$a => __('activity.sentence.'.$a, ['actor' => '', 'from' => '…', 'to' => '…', 'account' => '…', 'name' => '…', 'item' => '…'])])"
                           class="sm:w-auto" />
             </div>
 

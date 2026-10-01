@@ -30,6 +30,10 @@ final class EventSentence
             'to' => __('common.not_set'),
             // The account acted on in Manage → Users, as it was named then.
             'account' => self::readable($event->meta['account'] ?? null),
+            // Which room, category, supply or title; after a rename, the new name.
+            'name' => self::readable(self::current($event->meta['name'] ?? null)),
+            // A furniture line within a room.
+            'item' => self::readable($event->meta['item'] ?? null),
         ];
 
         foreach ((array) $event->meta as $value) {
@@ -41,6 +45,12 @@ final class EventSentence
         }
 
         return $replacements;
+    }
+
+    /** A plain value, or the "to" side of a before/after pair. */
+    private static function current(mixed $value): mixed
+    {
+        return is_array($value) && array_key_exists('to', $value) ? $value['to'] : $value;
     }
 
     private static function readable(mixed $value): string

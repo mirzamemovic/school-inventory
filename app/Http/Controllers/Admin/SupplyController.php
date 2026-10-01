@@ -11,6 +11,7 @@ use App\Support\EventAction;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class SupplyController extends Controller
@@ -31,7 +32,16 @@ class SupplyController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Supply::query()->create($this->validated($request));
+        $validated = $this->validated($request);
+
+        DB::transaction(function () use ($validated) {
+            $supply = Supply::query()->create($validated);
+
+            $this->log->record($supply, EventAction::SUPPLY_ADDED, [
+                'name' => $supply->name,
+                'quantity' => $supply->quantity,
+            ]);
+        });
 
         return redirect()->route('admin.supplies.index')->with('status', __('supplies.added'));
     }
@@ -44,9 +54,21 @@ class SupplyController extends Controller
         ]);
     }
 
+    /**
+     * The edit form can set the stock directly, which the +/− buttons and the
+     * cupboard page both log; this has to as well, or stock could change with
+     * no trace at all.
+     */
     public function update(Request $request, Supply $supply): RedirectResponse
     {
-        $supply->update($this->validated($request));
+        $validated = $this->validated($request);
+
+        DB::transaction(function () use ($supply, $validated) {
+            $before = $this->snapshot($supply);
+            $supply->update($validated);
+
+            $this->log->recordChanges($supply, EventAction::SUPPLY_EDITED, $before, $this->snapshot($supply->load('room')), $supply->name);
+        });
 
         return redirect()->route('admin.supplies.index')->with('status', __('supplies.changes_saved'));
     }
@@ -73,6 +95,19 @@ class SupplyController extends Controller
         }
 
         return back();
+    }
+
+    /** @return array<string, mixed> */
+    private function snapshot(Supply $supply): array
+    {
+        return [
+            'name' => $supply->name,
+            'quantity' => $supply->quantity,
+            'minimum_level' => $supply->minimum_level,
+            'unit' => $supply->unit?->value,
+            'room' => $supply->room?->name,
+            'storage_location' => $supply->storage_location,
+        ];
     }
 
     /** @return array<string, mixed> */

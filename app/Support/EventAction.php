@@ -47,6 +47,42 @@ final class EventAction
 
     public const PERSON_DEACTIVATED = 'person.deactivated';
 
+    public const PERSON_EDITED = 'person.edited';
+
+    public const PERSON_REACTIVATED = 'person.reactivated';
+
+    /*
+     * Master data that used to change without a trace, although spec §5 says
+     * every write path logs. Rooms, categories and book titles are subjects
+     * in their own right; furniture is logged against its room; settings
+     * against the admin who changed them, like an export.
+     */
+    public const ROOM_CREATED = 'room.created';
+
+    public const ROOM_EDITED = 'room.edited';
+
+    public const ROOM_COUNTED = 'room.counted';
+
+    public const ROOM_FURNITURE_ADDED = 'room.furniture_added';
+
+    /* Includes a count set to zero, which removes the line. */
+    public const ROOM_FURNITURE_CHANGED = 'room.furniture_changed';
+
+    public const CATEGORY_CREATED = 'category.created';
+
+    public const CATEGORY_EDITED = 'category.edited';
+
+    public const SUPPLY_ADDED = 'supply.added';
+
+    /* The edit form can set the stock directly, so this is not only names. */
+    public const SUPPLY_EDITED = 'supply.edited';
+
+    public const BOOK_TITLE_ADDED = 'book.title_added';
+
+    public const BOOK_TITLE_EDITED = 'book.title_edited';
+
+    public const SETTINGS_CHANGED = 'settings.changed';
+
     /*
      * Spelled `licence.*` exactly as the specification writes them, even though
      * the table and class use the American spelling. These strings end up in

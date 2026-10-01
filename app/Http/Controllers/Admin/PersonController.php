@@ -10,6 +10,7 @@ use App\Support\EventAction;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class PersonController extends Controller
@@ -51,9 +52,21 @@ class PersonController extends Controller
         return view('admin.people.edit', ['person' => $person]);
     }
 
+    /**
+     * Before and after are logged, names and email included. Erasure finds a
+     * person's earlier names and addresses through these rows, so a rename
+     * never leaves the old name behind (PersonEraser::identitiesOf).
+     */
     public function update(Request $request, Person $person): RedirectResponse
     {
-        $person->update($this->validated($request));
+        $validated = $this->validated($request);
+
+        DB::transaction(function () use ($person, $validated) {
+            $before = $this->snapshot($person);
+            $person->update($validated);
+
+            $this->log->recordChanges($person, EventAction::PERSON_EDITED, $before, $this->snapshot($person), $person->name);
+        });
 
         return redirect()->route('admin.people.index')->with('status', __('people.changes_saved'));
     }
@@ -70,7 +83,11 @@ class PersonController extends Controller
 
     public function reactivate(Person $person): RedirectResponse
     {
-        $person->update(['active' => true]);
+        DB::transaction(function () use ($person) {
+            $person->update(['active' => true]);
+
+            $this->log->record($person, EventAction::PERSON_REACTIVATED, ['name' => $person->name]);
+        });
 
         return back()->with('status', __('people.reactivated', ['name' => $person->name]));
     }
@@ -126,6 +143,17 @@ class PersonController extends Controller
         return redirect()
             ->route('admin.people.index')
             ->with('status', __('people.imported', ['added' => $added, 'skipped' => $skipped]));
+    }
+
+    /** @return array<string, mixed> */
+    private function snapshot(Person $person): array
+    {
+        return [
+            'name' => $person->name,
+            'type' => $person->type?->value,
+            'class' => $person->class,
+            'email' => $person->email,
+        ];
     }
 
     /** @return array<string, mixed> */
