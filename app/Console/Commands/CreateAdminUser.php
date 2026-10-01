@@ -3,14 +3,17 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Services\AdminAccounts;
 use App\Support\AdminPassword;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 /**
  * There is no public registration route (spec section 3.1). Accounts are made
- * here or by a seeder, and nowhere else.
+ * by another admin in Manage → Users; this is for the very first account, and
+ * for when nobody can sign in at all. It is not held to the limit of active
+ * accounts: whoever has the server's command line already has everything.
  */
 class CreateAdminUser extends Command
 {
@@ -18,12 +21,12 @@ class CreateAdminUser extends Command
 
     protected $description = 'Create an admin account';
 
-    public function handle(): int
+    public function handle(AdminAccounts $accounts): int
     {
         $name = $this->argument('name');
-        $email = $this->argument('email');
+        $email = Str::lower(trim($this->argument('email')));
 
-        if (User::query()->where('email', $email)->exists()) {
+        if (User::query()->whereRaw('lower(email) = ?', [$email])->exists()) {
             $this->error("An account already exists for {$email}. Use user:password to change its password.");
 
             return self::FAILURE;
@@ -46,11 +49,7 @@ class CreateAdminUser extends Command
             return self::FAILURE;
         }
 
-        User::query()->create([
-            'name' => $name,
-            'email' => $email,
-            'password' => Hash::make($password),
-        ]);
+        $accounts->createFromConsole(['name' => $name, 'email' => $email], $password);
 
         $this->info("Created the account for {$email}.");
 

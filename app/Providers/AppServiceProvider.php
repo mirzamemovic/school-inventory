@@ -41,7 +41,8 @@ class AppServiceProvider extends ServiceProvider
             'inspection' => Inspection::class,
             'licence' => License::class,
             'inspector_phone' => InspectorPhone::class,
-            // For what an admin does to the system rather than to one record:
+            // An account, acted on in Manage → Users; and the admin themselves,
+            // for what they do to the system rather than to one record:
             // exporting data, blocking a device.
             'user' => User::class,
         ]);
@@ -86,6 +87,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('report-status', fn (Request $request) => Limit::perHour(20)
             ->by('device:'.app(DeviceIdentity::class)->token($request))
             ->response($this->tooManyResponse()));
+
+        // A once-only password link cannot be guessed; this only keeps a
+        // crawler from hammering the page.
+        RateLimiter::for('account-setup', fn (Request $request) => Limit::perMinute(10)
+            ->by('ip:'.$request->ip())
+            ->response(fn () => response()->view('account.setup-unavailable', ['busy' => true], 429)));
     }
 
     /**

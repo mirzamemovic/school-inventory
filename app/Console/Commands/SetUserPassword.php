@@ -3,20 +3,20 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Services\AdminAccounts;
 use App\Support\AdminPassword;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * The whole password reset story. Resetting by email needs email, and email is
- * not configured; with two accounts this is the right amount of machinery
- * (spec section 3.1).
+ * The emergency route. Day to day, another admin resets a password in
+ * Manage → Users and the person chooses a new one with a once-only link; this
+ * is for when nobody can sign in at all (spec section 3.1).
  *
  * The usual reason to run it is "someone may know my password", so it also
  * signs that account out everywhere: every open session and every "keep me
  * signed in" cookie stops working, or a new password would lock nobody out.
+ * Any once-only link still out there stops working too.
  */
 class SetUserPassword extends Command
 {
@@ -24,10 +24,10 @@ class SetUserPassword extends Command
 
     protected $description = 'Set the password for an admin account and sign it out everywhere';
 
-    public function handle(): int
+    public function handle(AdminAccounts $accounts): int
     {
         $email = $this->argument('email');
-        $user = User::query()->where('email', $email)->first();
+        $user = User::query()->whereRaw('lower(email) = ?', [mb_strtolower(trim($email))])->first();
 
         if (! $user) {
             $this->error("No account found for {$email}.");
@@ -41,7 +41,7 @@ class SetUserPassword extends Command
 
         $validator = Validator::make(
             ['password' => $password],
-            ['password' => AdminPassword::rules($email)],
+            ['password' => AdminPassword::rules($user->email)],
         );
 
         if ($validator->fails()) {
@@ -52,16 +52,13 @@ class SetUserPassword extends Command
             return self::FAILURE;
         }
 
-        $user->forceFill([
-            'password' => Hash::make($password),
-            'remember_token' => null,
-        ])->save();
-
-        if (config('session.driver') === 'database') {
-            DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
-        }
+        $accounts->setPasswordFromConsole($user, $password);
 
         $this->info("Password changed for {$email}. It is now signed out everywhere.");
+
+        if ($user->isDeactivated()) {
+            $this->warn('This account is deactivated, so it still cannot sign in. Another admin can reactivate it in Manage → Users.');
+        }
 
         return self::SUCCESS;
     }

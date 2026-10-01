@@ -30,7 +30,27 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'password_set_at' => now(),
         ];
+    }
+
+    /**
+     * Made or reset, and still waiting for the person to choose a password
+     * with their once-only link.
+     */
+    public function waitingForPassword(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => Hash::make(Str::random(64)),
+            'password_set_at' => null,
+        ]);
+    }
+
+    public function deactivated(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'deactivated_at' => now()->subDay(),
+        ]);
     }
 
     /**

@@ -98,6 +98,15 @@ return [
             'renewed' => ':actor renewed it from :from to :to',
             'deleted' => ':actor removed this license',
         ],
+        'user' => [
+            'created' => ':actor added :account as a user',
+            'edited' => ':actor changed the details of :account from :from to :to',
+            'password_reset' => ':actor reset the password for :account',
+            'password_set' => ':actor chose a password with their once-only link',
+            'password_changed' => ':actor changed their own password',
+            'deactivated' => ':actor deactivated :account',
+            'reactivated' => ':actor reactivated :account',
+        ],
         'fallback' => ':actor did something',
     ],
 ];

@@ -24,6 +24,7 @@ class ManageController extends Controller
                 ['key' => 'activity', 'url' => route('admin.activity.index')],
                 ['key' => 'settings', 'url' => route('admin.settings.edit')],
                 ['key' => 'users', 'url' => route('admin.users.index')],
+                ['key' => 'password', 'url' => route('admin.account.password')],
             ],
         ]);
     }

@@ -19,5 +19,7 @@ return [
     'settings' => 'Settings',
     'settings_help' => 'School name, school year, and who may report.',
     'users' => 'Users',
-    'users_help' => 'The two accounts that can sign in.',
+    'users_help' => 'Who can sign in. Add, reset or deactivate them.',
+    'password' => 'Change my password',
+    'password_help' => 'The password you sign in with.',
 ];

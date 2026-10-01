@@ -94,6 +94,28 @@ final class EventAction
 
     public const INSPECTOR_PHONE_WITHDRAWN = 'inspector_phone.withdrawn';
 
+    /*
+     * Accounts that can sign in (Manage → Users). The subject is the account
+     * acted on; meta names it and, for an edit, holds before and after. Never
+     * a password, a hash or a link: those must not outlive the moment.
+     */
+    public const USER_CREATED = 'user.created';
+
+    public const USER_EDITED = 'user.edited';
+
+    /* An admin made a once-only link and the old password stopped working. */
+    public const USER_PASSWORD_RESET = 'user.password_reset';
+
+    /* The person chose their password with their once-only link. */
+    public const USER_PASSWORD_SET = 'user.password_set';
+
+    /* A signed-in admin changed their own password. */
+    public const USER_PASSWORD_CHANGED = 'user.password_changed';
+
+    public const USER_DEACTIVATED = 'user.deactivated';
+
+    public const USER_REACTIVATED = 'user.reactivated';
+
     /** @return array<int, string> */
     public static function all(): array
     {

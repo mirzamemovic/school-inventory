@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountCanSignIn;
 use App\Http\Middleware\SecureHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Every response: security headers, and plain HTTP redirected in production.
         $middleware->append(SecureHeaders::class);
+
+        $middleware->alias(['account.active' => EnsureAccountCanSignIn::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

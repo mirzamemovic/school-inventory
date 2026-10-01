@@ -55,12 +55,18 @@ it('puts the school name on every page', function () {
         ->assertSee('Gjimnazi Test');
 });
 
-it('lists the accounts without offering a way to make one in the browser', function () {
+// Changed 2026-10-01 with the owner's approval: accounts are now managed in
+// the browser (Manage → Users), behind a fresh password re-entry, instead of
+// only from the command line. UserManagementTest covers the rest.
+it('lists the accounts only after the password is typed again', function () {
     $this->actingAs($this->admin)
         ->get(route('admin.users.index'))
+        ->assertRedirect(route('admin.password.confirm'));
+
+    $this->withSession(['auth.password_confirmed_at' => now()->getTimestamp()])
+        ->get(route('admin.users.index'))
         ->assertOk()
-        ->assertSee($this->admin->email)
-        ->assertSee(__('users.password_command'));
+        ->assertSee($this->admin->email);
 });
 
 it('serves a robots file that keeps the whole application out of search', function () {

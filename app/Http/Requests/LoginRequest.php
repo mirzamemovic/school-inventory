@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -38,12 +39,26 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Checked only after the password matched, so saying "switched off"
+        // tells nothing to someone who does not already know the password.
+        $switchedOff = false;
+
+        $signedIn = Auth::attemptWhen(
+            $this->only('email', 'password'),
+            function (User $user) use (&$switchedOff) {
+                $switchedOff = $user->isDeactivated();
+
+                return $user->canSignIn();
+            },
+            $this->boolean('remember'),
+        );
+
+        if (! $signedIn) {
             RateLimiter::hit($this->throttleKey(), 60);
             RateLimiter::hit($this->accountKey(), 3600);
 
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'email' => __($switchedOff ? 'auth.deactivated' : 'auth.failed'),
             ]);
         }
 

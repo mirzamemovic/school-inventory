@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AccountSetupController;
+use App\Http\Controllers\Admin\AccountPasswordController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\AssetActionController;
 use App\Http\Controllers\Admin\AssetController;
@@ -20,6 +22,7 @@ use App\Http\Controllers\Admin\SerialCheckController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupplyController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClassDebtController;
 use App\Http\Controllers\InspectionController;
@@ -29,6 +32,7 @@ use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\PublicAssetController;
 use App\Http\Controllers\PublicCupboardController;
 use App\Http\Controllers\PublicReportController;
+use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -105,12 +109,28 @@ Route::get('/photo/{path}', PhotoController::class)
     ->where('path', '.*')
     ->name('photo');
 
+// The once-only link with which someone chooses their password, after an admin
+// adds their account or resets it. Opening it changes nothing; only the form
+// does. An unknown account and a dead link both answer 410.
+Route::get('/account/setup/{user}/{token}', [AccountSetupController::class, 'show'])
+    ->whereNumber('user')
+    ->whereAlphaNumeric('token')
+    ->middleware('throttle:account-setup')
+    ->name('account.setup');
+
+Route::post('/account/setup/{user}/{token}', [AccountSetupController::class, 'store'])
+    ->whereNumber('user')
+    ->whereAlphaNumeric('token')
+    ->middleware('throttle:account-setup')
+    ->name('account.setup.store');
+
 /*
 |--------------------------------------------------------------------------
 | Admin
 |--------------------------------------------------------------------------
 |
-| Two accounts, a real password, and no registration or reset screen.
+| A handful of accounts, a real password, and no sign-up or "forgot password"
+| screen. Accounts are added and reset by another admin in Manage → Users.
 */
 
 Route::redirect('/', '/admin');
@@ -124,7 +144,8 @@ Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+// account.active turns away an account switched off or reset mid-session.
+Route::middleware(['auth', 'account.active'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', DashboardController::class)->name('home');
 
     // Inside the auth group on purpose: this reads serial numbers and report
@@ -219,7 +240,30 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
-    Route::get('users', [UserController::class, 'index'])->name('users.index');
+
+    // Typing the password again, checked on the server. Wrong attempts are
+    // limited in the controller, like sign-in.
+    Route::get('confirm-password', [ConfirmPasswordController::class, 'show'])->name('password.confirm');
+    Route::post('confirm-password', [ConfirmPasswordController::class, 'store'])->name('password.confirm.store');
+
+    // Asks for the current password on the form itself.
+    Route::get('account/password', [AccountPasswordController::class, 'edit'])->name('account.password');
+    Route::put('account/password', [AccountPasswordController::class, 'update'])->name('account.password.update');
+
+    // Every account route, reads included, needs the password typed in the
+    // last few minutes. Enforced here, on the server, for every method: a
+    // request sent without the page cannot skip it.
+    Route::middleware(RequirePassword::using('admin.password.confirm', ConfirmPasswordController::MINUTES * 60))->group(function () {
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::post('users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
+        Route::post('users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+        Route::post('users/{user}/reactivate', [UserController::class, 'reactivate'])->name('users.reactivate');
+    });
 
     Route::get('manage', ManageController::class)->name('manage');
 

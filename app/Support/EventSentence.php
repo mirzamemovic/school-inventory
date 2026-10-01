@@ -28,6 +28,8 @@ final class EventSentence
             'actor' => $event->actorLabel(),
             'from' => __('common.not_set'),
             'to' => __('common.not_set'),
+            // The account acted on in Manage → Users, as it was named then.
+            'account' => self::readable($event->meta['account'] ?? null),
         ];
 
         foreach ((array) $event->meta as $value) {
