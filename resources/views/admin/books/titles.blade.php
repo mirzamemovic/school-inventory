@@ -10,15 +10,35 @@
         </a>
     </div>
 
+    {{-- At the top, where adding something is expected, but folded: the list
+         is what this page is for. It opens by itself when there is nothing yet
+         or the last attempt failed, so the errors are the first thing seen. --}}
+    <details class="mb-5 max-w-md rounded border border-grey-200 bg-white" @if ($titles->isEmpty() && ! request('q') || $errors->any()) open @endif>
+        <summary class="disclosure flex min-h-tap cursor-pointer items-center px-4 py-2 text-lg font-bold">
+            {{ __('books.add_title') }}
+        </summary>
+
+        <form method="POST" action="{{ route('admin.books.titles.store') }}" class="border-t border-grey-200 p-4">
+            @csrf
+            @include('admin.books._title-fields', ['title' => new \App\Models\BookTitle])
+
+            <button type="submit" class="btn-secondary" data-busy-text="{{ __('common.saving') }}">
+                {{ __('books.add_title') }}
+            </button>
+        </form>
+    </details>
+
+    {{-- Not focused after a failed save: on a phone that would scroll the
+         errors above it out of sight. --}}
     <form method="GET" action="{{ route('admin.books.titles') }}" class="mb-4 max-w-md" role="search">
         <label for="q" class="sr-only">{{ __('books.search_placeholder') }}</label>
-        <x-input name="q" id="q" type="search" :value="request('q')" :placeholder="__('books.search_placeholder')" autofocus />
+        <x-input name="q" id="q" type="search" :value="request('q')" :placeholder="__('books.search_placeholder')" :autofocus="! $errors->any()" />
     </form>
 
     @if ($titles->isEmpty())
-        <x-empty-state class="mb-8" :message="request('q') ? __('assets.no_matches') : __('books.no_titles')" />
+        <x-empty-state :message="request('q') ? __('assets.no_matches') : __('books.no_titles')" />
     @else
-        <ul class="mb-8 divide-y divide-grey-200 rounded border border-grey-200 bg-white">
+        <ul class="divide-y divide-grey-200 rounded border border-grey-200 bg-white">
             @foreach ($titles as $title)
                 @php $available = max(0, $title->total_copies - $title->copies_out_count); @endphp
                 <li class="flex flex-wrap items-center gap-x-6 gap-y-2 px-3 py-3 sm:px-4">
@@ -51,21 +71,4 @@
             @endforeach
         </ul>
     @endif
-
-    {{-- Adding a title is occasional; the list is what this page is for. It
-         opens by itself when there is nothing yet or the last attempt failed. --}}
-    <details class="max-w-md rounded border border-grey-200 bg-white" @if ($titles->isEmpty() && ! request('q') || $errors->any()) open @endif>
-        <summary class="disclosure flex min-h-tap cursor-pointer items-center px-4 py-2 text-lg font-bold">
-            {{ __('books.add_title') }}
-        </summary>
-
-        <form method="POST" action="{{ route('admin.books.titles.store') }}" class="border-t border-grey-200 p-4">
-            @csrf
-            @include('admin.books._title-fields', ['title' => new \App\Models\BookTitle])
-
-            <button type="submit" class="btn-secondary" data-busy-text="{{ __('common.saving') }}">
-                {{ __('books.add_title') }}
-            </button>
-        </form>
-    </details>
 </x-layouts.admin>

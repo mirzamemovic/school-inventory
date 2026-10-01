@@ -17,6 +17,42 @@ it('keeps the books screens behind a password', function () {
     $this->get(route('admin.books.titles'))->assertRedirect(route('login'));
 });
 
+it('adds a title from the form at the top of the Books page', function () {
+    $this->actingAs($this->admin)
+        ->post(route('admin.books.titles.store'), [
+            'title' => 'Matematika 10',
+            'subject' => 'Mathematics',
+            'grade' => 10,
+            'total_copies' => 30,
+        ])
+        ->assertRedirect(route('admin.books.titles'))
+        ->assertSessionHas('status', __('books.title_added'));
+
+    expect(BookTitle::query()->where('title', 'Matematika 10')->value('total_copies'))->toBe(30);
+});
+
+it('puts the add-a-title form above the list, open with its errors after a failed save', function () {
+    BookTitle::factory()->create(['title' => 'Biology 10']);
+
+    // Folded at the top on an ordinary visit; the list keeps the attention.
+    $html = $this->actingAs($this->admin)->get(route('admin.books.titles'))->assertOk()->getContent();
+
+    expect(strpos($html, __('books.add_title')))->toBeLessThan(strpos($html, 'Biology 10'))
+        ->and($html)->toMatch('/<details class="[^"]*"\s*>/')
+        ->and($html)->toContain('autofocus');
+
+    // After a failed save it is open, and the search box does not take focus
+    // and scroll the errors away.
+    $html = $this->actingAs($this->admin)
+        ->from(route('admin.books.titles'))
+        ->followingRedirects()
+        ->post(route('admin.books.titles.store'), ['title' => '', 'grade' => '', 'total_copies' => ''])
+        ->getContent();
+
+    expect($html)->toMatch('/<details class="[^"]*"\s+open\s*>/')
+        ->and($html)->not->toContain('autofocus');
+});
+
 it('shows how many copies are owned, out and available', function () {
     $title = BookTitle::factory()->create(['total_copies' => 40]);
     BookLoan::factory()->count(3)->create(['book_title_id' => $title->id]);
