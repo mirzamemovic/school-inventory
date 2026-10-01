@@ -60,12 +60,17 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | will be used by the PHP date and date-time functions.
+    |
+    | Kosovo keeps Central European time, which PHP names after Belgrade
+    | (there is no Europe/Pristina). Under UTC every time on screen, every
+    | "works until 14:30" and every audit row read one or two hours early.
+    | Times are stored as written, in this zone; the database is not asked
+    | to convert them.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Europe/Belgrade',
 
     /*
     |--------------------------------------------------------------------------
