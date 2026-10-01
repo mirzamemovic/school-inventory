@@ -125,6 +125,29 @@ The known cost of matching on value: if a person shares a name with an asset or
 a licence, that record's name is scrubbed too. Erring towards over-scrubbing is
 the right side to be wrong on.
 
+### Earlier names and addresses go too
+
+Since 2026-10-01 an edit to a person is logged with before and after:
+
+```
+person.edited       {"name":{"from":"Ana B","to":"Ana Berisha"},"email":{…}}
+```
+
+So a renamed student's old name sits in that row — and in any report or
+inspection filed under it before the rename. The eraser therefore gathers every
+name and email address the person has had from **their own** `person.edited`
+rows, and scrubs all of them everywhere the current name is scrubbed (reports,
+inspections, `actor_name`, meta). Without this, logging edits would have made
+erasure leave the old name behind. Covered by a test.
+
+### Admin accounts are not people
+
+The sign-in accounts in Manage → Users are not in `people` and `person:erase`
+does not touch them. Their names stay in the audit log as the record of who did
+what with administrator rights; an account that leaves is deactivated, never
+deleted. If a former administrator asks to be forgotten, that is a decision for
+the school, not something the command decides.
+
 ### Inspector names are matched by string, and that is not airtight
 
 `inspections.inspector_name` is free text with **no foreign key to `people`**.

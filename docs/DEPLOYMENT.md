@@ -174,16 +174,23 @@ environment is production.
 *Off-site / with staff* room and the default settings. It does **not** create
 demo data — see below.
 
-**There is no sign-up page and no password reset link,** by design. Accounts are
-made with `user:create` and passwords changed with `user:password`. If you cannot
-run artisan on the server, create the two accounts locally before uploading and
-they come across in the database.
+**There is no sign-up page and no "forgot password" link,** by design. The
+**first** account is made with `user:create`. If you cannot run artisan on the
+server, create it locally before uploading and it comes across in the database.
+
+After that, accounts are managed in the browser: **Manage → Users** (add a
+user, reset a password, deactivate someone who has left) and **Manage → Change
+my password**. Nobody ever sees anyone else's password: adding or resetting a
+user gives a once-only link, valid for an hour, with which that person chooses
+their own. Give it to them in person or privately — never in a group chat. At
+most three accounts can be active at once.
 
 Passwords must be at least 16 characters, must not appear in a known data
 breach, and must not contain the school's name or the email address. A phrase of
-four or more ordinary words is the easiest way to meet that. `user:password`
-also signs the account out everywhere — use it straight away if anyone else may
-know the password.
+four or more ordinary words is the easiest way to meet that.
+
+`user:password` is now the emergency route only, for when nobody can sign in. It
+also signs the account out everywhere.
 
 ### Inspectors' phones
 

@@ -80,13 +80,24 @@ It never unlocks anything and is never checked as a permission — with one
 narrow exception: a device token enrolled in `inspector_phones` makes that
 phone's inspections count towards the schedule. See `SECURITY.md`.
 
-**Level 2 — admin, real login.** Everything under `/admin/*`. Two accounts.
+**Level 2 — admin, real login.** Everything under `/admin/*`. Two accounts
+normally, at most three active. **Every account is an admin: no roles.**
 
-- **No registration route exists** (asserted by a test)
-- **No password reset UI.** `php artisan user:password {email}` instead, which
-  also signs the account out everywhere
+- **No registration route and no "forgot password" screen** (both asserted by
+  tests). Email is not configured.
+- **Accounts are managed in Manage → Users** (owner's decision of 2026-10-01,
+  replacing spec §3.1's artisan-only rule): add, edit, reset password,
+  deactivate, reactivate, change my own password. Every Users route needs the
+  password typed in the last 10 minutes (`RequirePassword`, server-side).
+  Passwords are never shown: a new or reset account gets a once-only link
+  (`/account/setup/{user}/{token}`, Laravel reset token, hashed, 1 hour) and
+  the person chooses their own. All changes go through `AdminAccounts`.
+- `user:create` and `user:password` remain as the emergency route when nobody
+  can sign in. Both go through `AdminAccounts` and are logged as the system.
 - Login throttled 5/minute per email **and address**, plus 100/hour per email
-  from anywhere; "keep me signed in" lasts 14 days
+  from anywhere; "keep me signed in" lasts 14 days. Deactivated and
+  not-yet-set-up accounts cannot sign in; `EnsureAccountCanSignIn`
+  (`account.active`) turns them away mid-session.
 
 **There is no teacher login, deliberately.** Twenty accounts for people who touch
 the system four times a year means twenty forgotten passwords.
@@ -147,17 +158,28 @@ inspection_interval_months, last_inspected_at, notes, timestamps
 - **Append only. No `updated_at`.** `AssetEvent::booted()` throws
   `AuditLogIsAppendOnly` on any update or delete.
 - Polymorphic via an enforced morph map: `asset, report, person, supply,
-  inspection, licence, inspector_phone, user`. `user` is the subject of what an
-  admin does to the system rather than one record (exporting, blocking a
-  device, replacing a class link). `Relation::enforceMorphMap()` means an
-  unmapped model throws rather than writing a class name.
+  inspection, licence, inspector_phone, room, category, book_title, user`.
+  `user` is either the account acted on in Manage → Users, or the admin
+  themselves for what they do to the system rather than one record
+  (exporting, blocking a device, changing settings). Furniture is logged
+  against its room. `Relation::enforceMorphMap()` means an unmapped model
+  throws rather than writing a class name.
 - `ip_address` is **not in the spec** — added per §13's requirement to store IP
   on public actions.
-- 31 actions: the 18 from §5, plus `licence.created/edited/renewed/deleted`,
+- 52 actions: the 18 from §5, plus `licence.created/edited/renewed/deleted`,
   `person.erased`, `data.retention_enforced`, `data.exported` (§16),
-  `device.blocked/unblocked`, `book.class_link_replaced` and
-  `inspector_phone.invited/claimed/withdrawn`. All in `App\Support\EventAction`.
+  `device.blocked/unblocked`, `book.class_link_replaced`,
+  `inspector_phone.invited/claimed/withdrawn`; and (added 2026-10-01)
+  `user.created/edited/password_reset/password_set/password_changed/deactivated/reactivated`,
+  `person.edited/reactivated`, `room.created/edited/counted/furniture_added/furniture_changed`,
+  `category.created/edited`, `supply.added/edited`, `book.title_added/title_edited`
+  and `settings.changed`. All in `App\Support\EventAction`; a test fails if any
+  has no sentence.
 - `meta` stores before/after pairs: `{"room":{"from":"Lab 2","to":"Room 14"}}`.
+  Edits use `AuditLogger::recordChanges()`, which writes nothing when nothing
+  changed and adds a scalar `name` so the sentence can say which record.
+- **Never a password, hash, token or link in meta.** `user.*` meta names the
+  account (`account`) and, for edits, before/after of name and email only.
 
 **Honesty constraint:** public actors are self-declared, never verified.
 `actor_type` distinguishes them and the UI styles them as "Self-reported".
@@ -227,6 +249,16 @@ addressed by room, and matching free text to a room name would break on rename.
 Key/value. Keys: `school_name`, `student_reporting_enabled`, `academic_year`,
 `notification_email` (present, unused).
 
+### `users`
+`id, name, email, email_verified_at, password, remember_token, deactivated_at, password_set_at, last_login_at, timestamps`
+Laravel's own table plus three columns (2026-10-01). **No role column** — every
+account is an admin (spec §19). `deactivated_at`: switched off, never deleted
+(reports, inspector phones and the log point here). `password_set_at`: when the
+person last chose their password; **null means waiting for their once-only
+link** and the stored password is random. `last_login_at`: set on every
+sign-in, including a "keep me signed in" return. `password` is not fillable.
+The once-only links live in Laravel's `password_reset_tokens`, hashed.
+
 ### `label_queue_items`, `blocked_devices`
 Per-user pending label sheet (a table, not the session, so labels queued on a
 phone are still there at the desktop). Block list is one token per row.
@@ -284,7 +316,9 @@ Break any of these and the system becomes wrong rather than merely buggy.
 
 ## 7. Routes
 
-100 routes. Public ones are listed in §3. Admin structure:
+126 routes. Public ones are listed in §3, plus `/account/setup/{user}/{token}`
+(the once-only password link). Every `/admin/*` route carries `auth` and
+`account.active`. Admin structure:
 
 ```
 /admin                        dashboard (needs-attention + four numbers)
@@ -303,8 +337,15 @@ Break any of these and the system becomes wrong rather than merely buggy.
 /admin/supplies               index / edit / adjust (HTMX)
 /admin/licenses               index / create / show / edit / renew / destroy
 /admin/inspections/overdue
-/admin/categories /admin/activity /admin/settings /admin/users
+/admin/categories /admin/activity /admin/settings
+/admin/confirm-password       type your password again (10-minute window)
+/admin/account/password       change my own password
+/admin/users                  index / create / show / edit / password / (de|re)activate
+                              — every one behind RequirePassword
 ```
+
+`rooms/{room}/contents/{content}` uses `scopeBindings()`: the furniture line
+must belong to that room.
 
 **Route ordering matters twice:** `assets/create` and `assets/serial-check` must
 precede `assets/{asset}`, because `Asset::getRouteKeyName()` is `asset_tag` and
@@ -333,11 +374,20 @@ with a red count badge on Reports. Tests assert the count stays at five.
 | `GlobalSearch` | Six LIKE queries with an explicit ESCAPE clause |
 | `SerialNumberCheck` | Duplicate serial lookup — warns, never blocks |
 | `RetentionPolicy` | Answers what has expired; deletes nothing itself |
-| `PersonEraser` | Pseudonymisation including meta-JSON scrub |
+| `PersonEraser` | Pseudonymisation including meta-JSON scrub, of every name and email the person has had (found through their `person.edited` rows) |
+| `AdminAccounts` | Every change to a sign-in account: create, edit, reset, (de)activate, choose/change password. Transaction + row lock + policy re-check; signs out everywhere |
 
 **Support** (`app/Support`): `EventAction` (action constants), `Actor` (who did
 it), `EventSentence` (renders a log row as a sentence), `AcademicYear`,
-`PublicAssetView` (the enumeration-defence DTO).
+`PublicAssetView` (the enumeration-defence DTO), `AdminPassword` (the password
+rule), `PasswordRecheck` (re-typing your own password, rate-limited).
+
+**Policies**: `UserPolicy` — the account guardrails (3 active, not yourself,
+actor must be able to sign in). There are no other policies: every account is
+an admin, so `auth` is the authorisation for everything else.
+
+**Middleware**: `SecureHeaders`, `EnsureAccountCanSignIn` (`account.active`).
+**Listeners**: `RecordSignIn` sets `users.last_login_at`.
 
 **Observers**: `PersonObserver` maintains `left_at`.
 
@@ -374,6 +424,9 @@ The detail page shows **that item's previous reports**, which is what turns a
 one-off into a replacement decision. Three buttons: Working on it / Fixed / Not a
 problem, plus a note box. Fixed and Not-a-problem **restore the snapshot
 silently**; a small "Set a different state" link covers partial repairs.
+**The three buttons act only on a report that is still open**, checked under a
+row lock in one transaction with the restore and the log: a second "Fixed"
+from a stale tab is refused rather than re-applying an old snapshot.
 
 ### C. Books
 
@@ -474,8 +527,8 @@ descriptions are never rendered raw.
 ## 11. Console commands
 
 ```
-user:create {name} {email}      make an admin account (no sign-up page exists)
-user:password {email}           the entire password-reset story
+user:create {name} {email}      first account, or when nobody can sign in (no cap)
+user:password {email}           emergency reset; signs the account out everywhere
 data:enforce-retention [--dry-run]
 person:erase {id}
 ```
@@ -516,10 +569,12 @@ search dropdown, serial-number check.
 
 ## 13. Testing
 
-**363 tests, 1,118 assertions, Pest, all passing.** 27 feature test files. Tests
-run against SQLite `:memory:` with `RefreshDatabase`. `SecurityHardeningTest`
-and `InspectorPhoneTest` hold the security work; the breached-password check is
-faked so the suite never leaves the machine.
+**445 tests, 1,547 assertions, Pest, all passing** (2026-10-01). 30 feature test
+files. Tests run against SQLite `:memory:` with `RefreshDatabase`.
+`SecurityHardeningTest`, `InspectorPhoneTest` and `UserManagementTest` hold the
+security work; `AuditCoverageTest` checks every master-data write is logged;
+`IntegrityTest` covers closed reports and assignment. The breached-password
+check is faked so the suite never leaves the machine.
 
 Every write path has a test (§0 rule 5). The suite is organised by behaviour
 rather than by class — `PublicScanTest` asserts the enumeration defence,
@@ -573,6 +628,20 @@ Each of these was a real bug found in this codebase. Do not reintroduce them.
 14. **Tests send cookies encrypted.** Use `withCookie()` for the reporter
     cookie; `withUnencryptedCookie()` skips encryption, the app still decrypts,
     and the cookie silently reads as empty.
+15. **Anything logged must be erasable.** Logging a person's edit stores their
+    old name and email; erasure has to find those too (`PersonEraser::identitiesOf`
+    reads the person's own `person.edited` rows). Before logging a new
+    personal value, check `person:erase` can reach it.
+16. **Hiding a button is not a rule.** The report page hid Fixed on closed
+    reports, but the server accepted it and re-applied a stale snapshot. Every
+    "only when…" must be checked on the server, under a lock if two admins can
+    race.
+17. **A flashed once-only link is gone after the very next request** — any
+    request, including an unrelated one. Redirect straight to the page that
+    shows it.
+18. **`php -S` with Laravel's `server.php` must run with `public/` as the
+    working directory.** From the project root every request is a PHP fatal
+    that curl reports as `200` with no redirect.
 
 ---
 
@@ -601,7 +670,9 @@ many-to-many, mobile app, offline sync, multi-tenant, an API.
 **Beyond-spec additions, all flagged when made:** `categories.prefix`,
 `assets.tag_sequence`, `reports.reference`, `asset_events.ip_address`,
 `supplies.room_id`, `people.left_at`, and the `data.retention_enforced` action.
-Each exists because the specified behaviour is impossible without it.
+Each exists because the specified behaviour is impossible without it. Plus,
+approved by the owner on 2026-10-01: `users.deactivated_at`,
+`users.password_set_at`, `users.last_login_at` and web account management.
 
 ---
 
@@ -613,4 +684,5 @@ Each exists because the specified behaviour is impossible without it.
 - Run `php artisan test` before and after any change.
 - `npm run build` after touching a Blade file that uses a new Tailwind class.
 - `./vendor/bin/pint` before finishing.
-- The project is **not** a git repository at time of writing.
+- The project is a git repository; see `HANDOFF.md` for how commits are made.
+- Timezone is `Europe/Belgrade` (Kosovo); times are stored as written in it.

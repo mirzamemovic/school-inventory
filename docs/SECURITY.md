@@ -15,8 +15,9 @@ before adding anything a stranger can reach.
    under Kosovo's Law No. 06/L-082 (the GDPR, transposed).
 3. **The 30-second report.** A teacher scanning a sticker must never meet a
    broken page.
-4. **The two admin accounts.** No second factor and no email reset, so the
-   password is the whole perimeter.
+4. **The admin accounts.** No second factor and no email reset, so the
+   password is the whole perimeter. Every account is an admin; there are no
+   roles.
 
 The inventory itself is barely secret: the public scan page shows almost
 nothing, by design. Nobody moves money through this system.
@@ -37,6 +38,7 @@ is add noise the director can see, never remove a signal the director needs.
 | Recount | Confirms or lowers stock | **Cannot raise it.** 9999 would silence *running low* for good; deliveries go through the office |
 | Inspection: fine | Recorded | **Only counts from an enrolled phone or a signed-in admin.** Otherwise it cannot reset the date and silence *overdue* |
 | Inspection: problem | Raises a report | Raises a warning |
+| Choose a password (once-only link) | Sets the password of the one account the link was made for | **Only with a link an admin made, in the last hour, not yet used.** The link is the trusted step; it touches no warning |
 
 **Before adding a public write, put it in this table.** If the answer to "can
 this make a warning disappear?" is yes, it needs a trusted step — an admin, or a
@@ -86,6 +88,30 @@ device the director enrolled in person — before it counts.
 - Secure, HTTP-only session cookies; HTTPS forced in production, with HSTS.
 - `X-Frame-Options: DENY`, so no button can be clicked through a frame.
 
+**Account management** (Manage → Users, approved 2026-10-01)
+- **Nobody can see or learn another person's password.** None is stored in a
+  form that can be read back, and none is ever shown, logged or sent to a page.
+  A new or reset account gets a random password nobody knows plus a
+  **once-only link** (Laravel's reset token: stored hashed, one hour, single
+  use, replaced by any newer link) with which the person chooses their own.
+  The link is shown once, with a QR, and cannot be shown again.
+- **The password typed again** within the last 10 minutes before any Users
+  page or action — checked by the server on every method, not by the page.
+  Wrong re-entries are limited like sign-in.
+- **Guardrails** (`UserPolicy`, checked again under a row lock in
+  `AdminAccounts`): at most 3 active accounts; nobody resets or deactivates
+  themselves; whoever acts must still be able to sign in. Together these mean
+  the last admin can never be switched off, even by two admins at once — on a
+  host without a command line that would be unrecoverable.
+- **Deactivate, never delete.** Deactivating or resetting signs the account out
+  everywhere at once; `EnsureAccountCanSignIn` turns it away on its next
+  request whatever the session driver. A deactivated account is told so only
+  after typing the right password, so the message reveals nothing to a stranger.
+- Every change is in the audit log (`user.*`) naming the account, never a
+  password, hash or link. `password` is not mass-assignable.
+- Sign-ins are not logged (they would bury everything else); the Users page
+  shows each account's last sign-in instead.
+
 **Leaks of children's data**
 - The class book-debt link carries a version inside its signature. *Make a new
   link* withdraws every copy of the old one at once.
@@ -111,7 +137,10 @@ device the director enrolled in person — before it counts.
 
 | What happened | Do this |
 |---|---|
-| Someone may know an admin password | `php artisan user:password email` — also signs that account out everywhere |
+| Someone may know your password | Manage → Change my password — every other device is signed out |
+| Someone may know another admin's password | Manage → Users → the person → *Reset password*, and give them the new link in person |
+| An admin leaves the school | Manage → Users → the person → *Deactivate* |
+| Nobody can sign in at all | `php artisan user:password email` (or `user:create`) on the server — the emergency route |
 | A class link reached the wrong person | Books → Returns → the class → *Make a new link*, and send the new one |
 | An inspector's phone is lost or replaced | Manage → Inspectors' phones → *Withdraw this phone*, then set up the new one |
 | Joke reports are arriving | Manage → Activity → find the rows → *Block this device* |
