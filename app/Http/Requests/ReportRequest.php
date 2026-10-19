@@ -52,6 +52,16 @@ class ReportRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        // A kilobyte count means nothing to a teacher holding a phone. "uploaded"
+        // is what fires when PHP itself turns the file away for its size.
+        return [
+            'photo.max' => __('reports.photo_too_big'),
+            'photo.uploaded' => __('reports.photo_too_big'),
+        ];
+    }
+
     /** The words the director will read, built from the tap-chip and the free text. */
     public function describedProblem(): string
     {

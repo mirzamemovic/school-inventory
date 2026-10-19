@@ -85,6 +85,7 @@ return [
     'what_is_wrong' => 'What is wrong?',
     'anything_else' => 'Anything else? (optional)',
     'add_photo' => 'Add a photo (optional)',
+    'photo_too_big' => 'This photo is too large. Please try again, or send the report without a photo.',
 
     'status' => [
         'open' => 'Open',

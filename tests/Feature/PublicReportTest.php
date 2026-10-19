@@ -246,6 +246,28 @@ it('refuses a tiny photo that claims an enormous canvas, before decoding it', fu
     expect(Report::query()->count())->toBe(0);
 });
 
+it('accepts a normal phone photo of about 8 MB', function () {
+    Storage::fake('local');
+    $asset = Asset::factory()->create();
+
+    $this->post(route('report.store', $asset->asset_tag), reportPayload([
+        'photo' => UploadedFile::fake()->image('phone.jpg', 1200, 900)->size(8 * 1024),
+    ]))->assertRedirect()->assertSessionHasNoErrors();
+
+    Storage::disk('local')->assertExists(Report::query()->firstOrFail()->photo_path);
+});
+
+it('refuses a photo over 15 MB in plain words', function () {
+    Storage::fake('local');
+    $asset = Asset::factory()->create();
+
+    $this->post(route('report.store', $asset->asset_tag), reportPayload([
+        'photo' => UploadedFile::fake()->image('huge.jpg', 1200, 900)->size(16 * 1024),
+    ]))->assertSessionHasErrors(['photo' => __('reports.photo_too_big')]);
+
+    expect(Report::query()->count())->toBe(0);
+});
+
 it('writes the report and the status change into the audit log', function () {
     $asset = Asset::factory()->create();
 

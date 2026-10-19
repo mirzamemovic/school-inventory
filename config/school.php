@@ -49,7 +49,7 @@ return [
     | in the file (spec section 13).
     */
     'photos' => [
-        'max_kilobytes' => 5120,
+        'max_kilobytes' => 15360,
         // Decoded size, not file size: a tiny file can declare a huge canvas.
         // Also capped at run time by what memory_limit leaves room for.
         'max_pixels' => 50_000_000,
