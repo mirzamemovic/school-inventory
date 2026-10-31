@@ -1,10 +1,10 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "mirzamemovic/school-inventory",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "QR-based inventory, fault reporting and textbook loans for a small school.",
+    "keywords": ["laravel", "htmx", "inventory", "qr-code", "school"],
+    "license": "proprietary",
     "require": {
         "php": "^8.3",
         "barryvdh/laravel-dompdf": "^3.1",
