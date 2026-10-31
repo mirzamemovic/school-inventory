@@ -179,7 +179,7 @@ it('records who exported the log, and says in the file that it holds personal da
     $event = AssetEvent::query()->where('action', EventAction::DATA_EXPORTED)->firstOrFail();
 
     expect($event->actor_id)->toBe($this->admin->id)
-        ->and($event->meta)->toBe(['dataset' => 'activity', 'rows' => 1])
+        ->and($event->meta)->toBeJson(['dataset' => 'activity', 'rows' => 1])
         ->and($csv)->toContain('This file contains personal data')
         ->and($csv)->toContain($this->admin->name);
 });

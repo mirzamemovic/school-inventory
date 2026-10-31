@@ -659,6 +659,9 @@ Each of these was a real bug found in this codebase. Do not reintroduce them.
 21. **On MySQL, `=`, `IN` and unique checks ignore case and accents.** With
     `utf8mb4_unicode_ci`, "Arben" equals "Arbën". SQLite compares exactly, so a
     test on it cannot show this.
+22. **MySQL's JSON column sorts object keys,** shorter keys first, so a stored
+    `{from, to}` reads back as `{to, from}`. Nothing may depend on the order of keys
+    in `meta`. Tests compare it with `toBeJson`, which ignores key order only.
 
 ---
 
