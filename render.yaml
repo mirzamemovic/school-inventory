@@ -1,5 +1,5 @@
-# The one-day video demo only: see VIDEO-DEMO.md. Render asks for the three
-# values below when this file is first applied.
+# An optional hosted demo with fictional data. Render asks for the two values
+# below when this file is first applied. Free services sleep and reset.
 services:
   - type: web
     name: school-inventory-demo
@@ -10,6 +10,4 @@ services:
       - key: DEMO_ADMIN_EMAIL
         sync: false
       - key: DEMO_ADMIN_PASSWORD
-        sync: false
-      - key: DEMO_ASSET_NAME
         sync: false

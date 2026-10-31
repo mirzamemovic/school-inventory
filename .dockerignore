@@ -5,7 +5,6 @@
 node_modules
 vendor
 tests
-school-inventory
 public/build
 public/hot
 bootstrap/cache/*.php

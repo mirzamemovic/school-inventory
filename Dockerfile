@@ -1,5 +1,5 @@
-# The one-day video demo only: see VIDEO-DEMO.md. The school's real deployment
-# is DEPLOYMENT.md and uses none of this.
+# A self-contained demo with fictional data, for trying the app with one command.
+# The real target is shared cPanel hosting (docs/DEPLOYMENT.md), which uses none of this.
 
 FROM composer:2 AS vendor
 WORKDIR /app
@@ -32,7 +32,7 @@ COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 # clean state and no database file is uploaded from anyone's computer. It runs
 # here as non-production on purpose: DemoSeeder refuses production, and the
 # running site below is production. Routes and views are compiled now because a
-# free server is slow, and each wipe would otherwise compile them again on camera.
+# free server is slow, and each restart would otherwise compile them again.
 RUN sed -i 's/\r$//' docker/start.sh \
     && echo 'Listen ${PORT}' > /etc/apache2/ports.conf \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs storage/app/private bootstrap/cache \
