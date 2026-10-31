@@ -571,7 +571,7 @@ search dropdown, serial-number check.
 
 ## 13. Testing
 
-**468 tests, Pest, all passing** (2026-10-31). 32 feature test files. Tests run
+**466 tests, Pest, all passing** (2026-10-31). 32 feature test files. Tests run
 against SQLite `:memory:` with `RefreshDatabase`; one test only runs on MySQL or
 MariaDB, so SQLite reports it as skipped. The whole suite has also been run on
 MariaDB 10.4: real environment variables beat `phpunit.xml`, so pointing `DB_*` at a
