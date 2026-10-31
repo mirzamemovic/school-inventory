@@ -6,6 +6,7 @@ use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
 use App\Enums\FundingSource;
 use App\Exceptions\TagIsWriteOnce;
+use App\Support\StickerUrl;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -129,7 +130,7 @@ class Asset extends Model
 
     public function scanUrl(): string
     {
-        return url('/a/'.$this->asset_tag);
+        return StickerUrl::to('/a/'.$this->asset_tag);
     }
 
     public function scopeSearch(Builder $query, ?string $term): Builder

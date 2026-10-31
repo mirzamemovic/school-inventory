@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RoomType;
+use App\Support\StickerUrl;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,5 +41,11 @@ class Room extends Model
     public function label(): string
     {
         return $this->floor ? $this->name.' ('.$this->floor.')' : $this->name;
+    }
+
+    /** The address for the QR on this room's cupboard door. */
+    public function cupboardUrl(): string
+    {
+        return StickerUrl::to('/c/'.$this->id);
     }
 }

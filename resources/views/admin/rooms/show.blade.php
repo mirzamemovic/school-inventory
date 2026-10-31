@@ -112,7 +112,7 @@
 
         <p class="text-sm text-grey-700">
             {{ __('rooms.cupboard_link') }}:
-            <a href="{{ route('cupboard', $room) }}" class="link font-mono break-all">{{ route('cupboard', $room) }}</a>
+            <a href="{{ $room->cupboardUrl() }}" class="link font-mono break-all">{{ $room->cupboardUrl() }}</a>
         </p>
     @endif
 </x-layouts.admin>

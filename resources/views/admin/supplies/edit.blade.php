@@ -17,7 +17,7 @@
     @if ($supply->room_id)
         <p class="mt-8 text-sm text-grey-700">
             {{ __('supplies.cupboard') }}:
-            <a href="{{ route('cupboard', $supply->room) }}" class="link font-mono break-all">{{ route('cupboard', $supply->room) }}</a>
+            <a href="{{ $supply->room->cupboardUrl() }}" class="link font-mono break-all">{{ $supply->room->cupboardUrl() }}</a>
         </p>
     @endif
 </x-layouts.admin>
