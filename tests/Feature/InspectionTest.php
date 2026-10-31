@@ -55,6 +55,18 @@ it('works out when the next one is due from the interval', function () {
         ->toBe(now()->addMonths(6)->toDateString());
 });
 
+it('records a check whose next one falls due after 2038', function () {
+    // The longest interval allowed is ten years. A timestamp column stops in
+    // January 2038, so on MySQL this would fail from early 2028 onwards.
+    $this->travelTo('2030-03-01 10:00:00');
+
+    $asset = Asset::factory()->create(['needs_inspection' => true, 'inspection_interval_months' => 120]);
+
+    $inspection = app(InspectionRecorder::class)->record($asset, InspectionResult::Pass, 'Arben Krasniqi');
+
+    expect($inspection->fresh()->next_due_at->toDateString())->toBe('2040-03-01');
+});
+
 it('refreshes the cached last-inspected date on the asset', function () {
     $asset = Asset::factory()->needingInspection()->create();
     asInspectorPhone();

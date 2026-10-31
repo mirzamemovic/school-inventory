@@ -185,6 +185,20 @@ it('scrubs inspections recorded under that exact name', function () {
         ->and($theirs->fresh()->inspector_name)->toBe('Behar Krasniqi');
 });
 
+it('leaves the date of a safety check alone when it scrubs the inspector', function () {
+    // Older MariaDB and MySQL rewrite the first timestamp column in a table on
+    // every update. A check done in 2025 must not move to the day of erasure.
+    $inspection = Inspection::factory()->create([
+        'inspector_name' => 'Ana Berisha',
+        'inspected_at' => '2025-03-04 09:30:00',
+    ]);
+
+    eraseAna();
+
+    expect($inspection->fresh()->inspector_name)->not->toBe('Ana Berisha')
+        ->and($inspection->fresh()->inspected_at->toDateTimeString())->toBe('2025-03-04 09:30:00');
+});
+
 it('shows the matched inspections before doing anything', function () {
     $asset = Asset::factory()->create(['name' => 'Fire extinguisher, corridor']);
     Inspection::factory()->create(['inspector_name' => 'Ana Berisha', 'asset_id' => $asset->id]);
