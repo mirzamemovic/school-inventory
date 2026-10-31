@@ -241,7 +241,7 @@ it('logs who added which user, and never the link or a password', function () {
         ->and($event->subject_id)->toBe($user->id)
         ->and($event->actor_type)->toBe(ActorType::Admin)
         ->and($event->actor_id)->toBe($this->admin->id)
-        ->and($event->meta)->toBeJson(['account' => 'Arben Krasniqi', 'email' => 'arben@school.example'])
+        ->and($event->meta)->toBeMeta(['account' => 'Arben Krasniqi', 'email' => 'arben@school.example'])
         ->and(json_encode($event->getAttributes()))->not->toContain(tokenFrom(linkFrom($response)))
         ->and(EventSentence::for($event))->toBe('Drita Berisha added Arben Krasniqi as a user');
 });
@@ -515,7 +515,7 @@ it('edits a name and email, and logs what changed from what', function () {
         ->and(Hash::check('sneaked in', $other->password))->toBeFalse();
 
     $event = AssetEvent::query()->where('action', EventAction::USER_EDITED)->sole();
-    expect($event->meta['email'])->toBeJson(['from' => 'arben@school.example', 'to' => 'a.krasniqi@school.example'])
+    expect($event->meta['email'])->toBeMeta(['from' => 'arben@school.example', 'to' => 'a.krasniqi@school.example'])
         ->and(EventSentence::for($event))->toBe('Drita Berisha changed the details of Arben Krasniqi from arben@school.example to a.krasniqi@school.example');
 });
 

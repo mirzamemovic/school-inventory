@@ -46,7 +46,7 @@ it('logs a room being renamed, with before and after', function () {
     $this->put(route('admin.rooms.update', $room), ['name' => 'Room 14', 'floor' => $room->floor, 'type' => $room->type->value]);
 
     $event = onlyEvent(EventAction::ROOM_EDITED);
-    expect($event->meta['name'])->toBeJson(['from' => 'Lab 2', 'to' => 'Room 14'])
+    expect($event->meta['name'])->toBeMeta(['from' => 'Lab 2', 'to' => 'Room 14'])
         ->and(EventSentence::for($event))->toBe('Drita Berisha changed the room Room 14 from Lab 2 to Room 14');
 });
 
@@ -89,7 +89,7 @@ it('logs a furniture count changing, and being set to zero, which removes the li
     $events = AssetEvent::query()->where('action', EventAction::ROOM_FURNITURE_CHANGED)->orderBy('id')->get();
     expect($events)->toHaveCount(2)
         ->and(EventSentence::for($events[0]))->toBe('Drita Berisha changed the number of Chairs in Room 12 from 30 to 28')
-        ->and($events[1]->meta['quantity'])->toBeJson(['from' => 28, 'to' => 0]);
+        ->and($events[1]->meta['quantity'])->toBeMeta(['from' => 28, 'to' => 0]);
 });
 
 it('does not let one room\'s address change another room\'s furniture', function () {
@@ -112,7 +112,7 @@ it('logs categories being added and changed', function () {
     $this->put(route('admin.categories.update', $category), ['name' => 'Tablets', 'prefix' => 'TAB', 'needs_inspection_default' => 1, 'default_inspection_interval_months' => 12]);
 
     expect(EventSentence::for(onlyEvent(EventAction::CATEGORY_CREATED)))->toBe('Drita Berisha added the category Tablets')
-        ->and(onlyEvent(EventAction::CATEGORY_EDITED)->meta['needs_inspection_default'])->toBeJson(['from' => false, 'to' => true]);
+        ->and(onlyEvent(EventAction::CATEGORY_EDITED)->meta['needs_inspection_default'])->toBeMeta(['from' => false, 'to' => true]);
 });
 
 // --- Settings -----------------------------------------------------------------
@@ -125,7 +125,7 @@ it('logs a change of settings against the admin who made it', function () {
     $event = onlyEvent(EventAction::SETTINGS_CHANGED);
     expect($event->subject_type)->toBe('user')
         ->and($event->subject_id)->toBe($this->admin->id)
-        ->and($event->meta)->toBeJson(['student_reporting_enabled' => ['from' => '1', 'to' => '0']]);
+        ->and($event->meta)->toBeMeta(['student_reporting_enabled' => ['from' => '1', 'to' => '0']]);
 });
 
 it('logs nothing when the settings are saved unchanged', function () {
@@ -144,7 +144,7 @@ it('logs a person being edited, and reactivated', function () {
     $this->put(route('admin.people.update', $person), ['name' => 'Ana B', 'type' => 'student', 'class' => '11-1']);
     $this->post(route('admin.people.reactivate', $person));
 
-    expect(onlyEvent(EventAction::PERSON_EDITED)->meta['class'])->toBeJson(['from' => '10-1', 'to' => '11-1'])
+    expect(onlyEvent(EventAction::PERSON_EDITED)->meta['class'])->toBeMeta(['from' => '10-1', 'to' => '11-1'])
         ->and(EventSentence::for(onlyEvent(EventAction::PERSON_EDITED)))->toBe("Drita Berisha changed a person's details")
         ->and(EventSentence::for(onlyEvent(EventAction::PERSON_REACTIVATED)))->toBe('Drita Berisha reactivated a person');
 });

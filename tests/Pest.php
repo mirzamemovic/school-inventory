@@ -35,6 +35,18 @@ expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });
 
+// MySQL's JSON column sorts object keys, so a stored {from, to} reads back as
+// {to, from}. The data is the same: compare strictly, but without the key order.
+expect()->extend('toBeMeta', function (array $expected) {
+    $sorted = function (array $value) use (&$sorted): array {
+        ksort($value);
+
+        return array_map(fn ($item) => is_array($item) ? $sorted($item) : $item, $value);
+    };
+
+    return expect($sorted($this->value))->toBe($sorted($expected));
+});
+
 /*
 |--------------------------------------------------------------------------
 | Functions
