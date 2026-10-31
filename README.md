@@ -45,7 +45,7 @@ The screens in an inventory app are easy. A school is hard because of who uses i
 | Hundreds of books go out in September and get chased by hand in June. | Issue to a whole class on one screen. In June, tick off returns by class, print the list, or send the class teacher a signed read-only link over WhatsApp. |
 | Fire extinguisher checks live in someone's head. | Each one has an inspection schedule. Overdue checks appear on Home, and a failed check raises a report by itself. |
 | A licence lapses, and nobody remembers which email account owns it. | Licences are listed by expiry with the owning account recorded. The warning differs for *the service stops* and *money leaves the account*. |
-| Labelling everything would take days of typing. | Print blank labels first and stick them on. Then scan each one, fill in four fields and tap *Save and scan next*, and the camera is ready again. |
+| Labelling everything would take days of typing. | Print blank labels first and stick them on. Then scan each one, fill in four fields and tap *Save and scan next*. It goes straight to the next label, never back to a list. |
 
 <p align="center">
   <img src="docs/screenshots/phone-report.png" alt="The report form on a phone, with tap choices for who you are and what is wrong" width="30%">
@@ -100,7 +100,7 @@ I used AI coding tools throughout, and I ran them the way a lead runs a capable 
 
 - **I set the direction.** The work started from a [written specification](docs/SPECIFICATION.md): threat model, data model, build order and a list of things not to build.
 - **I kept the decisions.** Product rules, security trade-offs and what to refuse stayed with me. "Recount can never raise stock" is a decision about how a school works, and a tool can't make it for you.
-- **I checked the work rather than trusting it.** Every write path needs a test. Audits against the spec found the [bugs above](#bugs-worth-talking-about), and each change landed as a small, reviewable commit.
+- **I checked the work rather than trusting it.** Every write path needs a test. Audits against the spec found the [bugs above](#bugs-worth-talking-about), and changes land as small, reviewable commits.
 
 That let me deliver far more than I could have alone in the time, without giving up understanding of the code. Ask me about any part of it.
 
