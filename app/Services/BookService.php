@@ -20,7 +20,7 @@ class BookService
      * of September: pick a class, confirm, done (spec section 7C).
      *
      * @param  array<int, array<int, int>>  $selection  person id => list of title ids
-     * @return int  how many loans were actually created
+     * @return int how many loans were actually created
      */
     public function issue(array $selection): int
     {
@@ -69,7 +69,7 @@ class BookService
 
     /**
      * @param  array<int, string>  $conditions  loan id => condition
-     * @return int  how many loans were closed
+     * @return int how many loans were closed
      */
     public function takeBack(array $conditions): int
     {

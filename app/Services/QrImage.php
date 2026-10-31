@@ -17,7 +17,7 @@ class QrImage
     public function svg(string $data, int $size = 220): string
     {
         return (new Builder(
-            writer: new SvgWriter(),
+            writer: new SvgWriter,
             writerOptions: [SvgWriter::WRITER_OPTION_EXCLUDE_XML_DECLARATION => true],
             data: $data,
             errorCorrectionLevel: ErrorCorrectionLevel::Medium,
@@ -30,7 +30,7 @@ class QrImage
     public function pngDataUri(string $data, int $size = 300): string
     {
         return (new Builder(
-            writer: new PngWriter(),
+            writer: new PngWriter,
             data: $data,
             errorCorrectionLevel: ErrorCorrectionLevel::Medium,
             size: $size,

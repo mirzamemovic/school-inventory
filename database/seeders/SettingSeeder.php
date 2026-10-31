@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Setting;
 use App\Support\AcademicYear;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 
 class SettingSeeder extends Seeder
@@ -25,6 +26,6 @@ class SettingSeeder extends Seeder
 
     public static function currentAcademicYear(): string
     {
-        return AcademicYear::forDate(\Carbon\CarbonImmutable::now());
+        return AcademicYear::forDate(CarbonImmutable::now());
     }
 }

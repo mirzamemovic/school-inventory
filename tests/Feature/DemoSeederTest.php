@@ -2,12 +2,16 @@
 
 use App\Enums\PersonType;
 use App\Models\Asset;
+use App\Models\AssetEvent;
 use App\Models\BookLoan;
 use App\Models\BookTitle;
+use App\Models\Inspection;
 use App\Models\License;
 use App\Models\Person;
 use App\Models\Report;
 use App\Models\Room;
+use App\Models\Supply;
+use App\Services\InspectionRecorder;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\RoomSeeder;
@@ -119,9 +123,9 @@ it('leaves the demo school with something on every screen worth showing', functi
     // Licences expiring, a licence already expired, and stock below minimum:
     // the home screen has real rows rather than an empty state.
     expect(License::query()->expiringWithin(60)->count())->toBeGreaterThan(0)
-        ->and(\App\Models\Supply::query()->low()->count())->toBeGreaterThan(0)
-        ->and(\App\Services\InspectionRecorder::overdue()->count())->toBeGreaterThan(0)
-        ->and(\App\Models\AssetEvent::query()->count())->toBeGreaterThan(50);
+        ->and(Supply::query()->low()->count())->toBeGreaterThan(0)
+        ->and(InspectionRecorder::overdue()->count())->toBeGreaterThan(0)
+        ->and(AssetEvent::query()->count())->toBeGreaterThan(50);
 });
 
 it('can be run twice without duplicating the school', function () {
@@ -135,7 +139,7 @@ it('can be run twice without duplicating the school', function () {
         'loans' => BookLoan::query()->count(),
         'reports' => Report::query()->count(),
         'licenses' => License::query()->count(),
-        'inspections' => \App\Models\Inspection::query()->count(),
+        'inspections' => Inspection::query()->count(),
     ];
 
     test()->seed(DemoSeeder::class);
@@ -148,7 +152,7 @@ it('can be run twice without duplicating the school', function () {
         'loans' => BookLoan::query()->count(),
         'reports' => Report::query()->count(),
         'licenses' => License::query()->count(),
-        'inspections' => \App\Models\Inspection::query()->count(),
+        'inspections' => Inspection::query()->count(),
     ])->toBe($before);
 });
 

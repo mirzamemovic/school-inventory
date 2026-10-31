@@ -5,9 +5,11 @@ use App\Models\AssetEvent;
 use App\Models\BookLoan;
 use App\Models\BookTitle;
 use App\Models\Person;
+use App\Models\Setting;
 use App\Models\User;
 use App\Support\AcademicYear;
 use App\Support\EventAction;
+use Carbon\CarbonImmutable;
 
 beforeEach(function () {
     $this->admin = User::factory()->create();
@@ -205,22 +207,22 @@ it('shows a student what they hold now and what they held before', function () {
 });
 
 it('works out the school year and its end date', function () {
-    expect(AcademicYear::forDate(\Carbon\CarbonImmutable::create(2026, 10, 1)))->toBe('2026/2027')
-        ->and(AcademicYear::forDate(\Carbon\CarbonImmutable::create(2027, 3, 1)))->toBe('2026/2027')
+    expect(AcademicYear::forDate(CarbonImmutable::create(2026, 10, 1)))->toBe('2026/2027')
+        ->and(AcademicYear::forDate(CarbonImmutable::create(2027, 3, 1)))->toBe('2026/2027')
         ->and(AcademicYear::endsOn('2026/2027')->toDateString())->toBe('2027-06-15');
 });
 
 it('rolls into the next school year over the summer, so nothing is issued already overdue', function () {
     // Books are due back on 15 June. A book handed out on 20 August belongs to
     // the year that is about to start, not the one that has just finished.
-    expect(AcademicYear::forDate(\Carbon\CarbonImmutable::create(2026, 6, 14)))->toBe('2025/2026')
-        ->and(AcademicYear::forDate(\Carbon\CarbonImmutable::create(2026, 8, 20)))->toBe('2026/2027')
-        ->and(AcademicYear::endsOn(AcademicYear::forDate(\Carbon\CarbonImmutable::create(2026, 8, 20)))->toDateString())
+    expect(AcademicYear::forDate(CarbonImmutable::create(2026, 6, 14)))->toBe('2025/2026')
+        ->and(AcademicYear::forDate(CarbonImmutable::create(2026, 8, 20)))->toBe('2026/2027')
+        ->and(AcademicYear::endsOn(AcademicYear::forDate(CarbonImmutable::create(2026, 8, 20)))->toDateString())
         ->toBe('2027-06-15');
 });
 
 it('honours a school year pinned in settings while it still means something', function () {
-    \App\Models\Setting::put('academic_year', '2099/2100');
+    Setting::put('academic_year', '2099/2100');
 
     expect(AcademicYear::current())->toBe('2099/2100');
 });
@@ -228,14 +230,14 @@ it('honours a school year pinned in settings while it still means something', fu
 it('ignores a pinned school year that has already ended', function () {
     // Otherwise the first September nobody updates it, every book is issued
     // with a due date in the past and every class link is born expired.
-    \App\Models\Setting::put('academic_year', '2019/2020');
+    Setting::put('academic_year', '2019/2020');
 
-    expect(AcademicYear::current())->toBe(AcademicYear::forDate(\Carbon\CarbonImmutable::now()))
+    expect(AcademicYear::current())->toBe(AcademicYear::forDate(CarbonImmutable::now()))
         ->and(AcademicYear::endsOn()->isFuture())->toBeTrue();
 });
 
 it('never issues a book with a due date in the past', function () {
-    \App\Models\Setting::put('academic_year', '2019/2020');
+    Setting::put('academic_year', '2019/2020');
 
     $title = BookTitle::factory()->forGrade(10)->create();
     $student = Person::factory()->inClass('10a')->create();

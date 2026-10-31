@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Room;
 use App\Models\User;
 use App\Support\EventAction;
+use Illuminate\Http\UploadedFile;
 
 beforeEach(function () {
     $this->admin = User::factory()->create();
@@ -62,7 +63,7 @@ it('requires a room, because every physical object is somewhere', function () {
 it('refuses a photo too large to decode on the asset form too', function () {
     $this->actingAs($this->admin)
         ->post(route('admin.assets.store'), assetPayload([
-            'photo' => \Illuminate\Http\UploadedFile::fake()->createWithContent('bomb.png', pngDeclaring(20000, 20000)),
+            'photo' => UploadedFile::fake()->createWithContent('bomb.png', pngDeclaring(20000, 20000)),
         ]))
         ->assertSessionHasErrors('photo');
 

@@ -7,6 +7,7 @@ use App\Models\Person;
 use App\Services\RetentionPolicy;
 use App\Support\AcademicYear;
 use App\Support\EventAction;
+use Illuminate\Console\Scheduling\Schedule;
 
 /*
 | The academic year ends on 15 June. "Now" in these tests is whatever the
@@ -192,7 +193,7 @@ it('records that retention ran, without naming anybody', function () {
 });
 
 it('is never scheduled', function () {
-    $scheduled = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
+    $scheduled = collect(app(Schedule::class)->events())
         ->map(fn ($event) => $event->command ?? '');
 
     expect($scheduled->filter(fn ($c) => str_contains($c, 'data:enforce-retention')))->toBeEmpty()

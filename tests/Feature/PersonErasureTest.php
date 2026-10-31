@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ActorType;
+use App\Exceptions\AuditLogIsAppendOnly;
 use App\Models\Asset;
 use App\Models\AssetEvent;
 use App\Models\BlockedDevice;
@@ -9,7 +10,6 @@ use App\Models\Inspection;
 use App\Models\Person;
 use App\Models\Report;
 use App\Services\AuditLogger;
-use App\Services\PersonEraser;
 use App\Support\Actor;
 use App\Support\EventAction;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +48,7 @@ it('leaves the audit log row count exactly as it was', function () {
 it('refuses to let anything delete an audit row, even now', function () {
     $event = app(AuditLogger::class)->record($this->person, EventAction::PERSON_ADDED);
 
-    expect(fn () => $event->delete())->toThrow(\App\Exceptions\AuditLogIsAppendOnly::class);
+    expect(fn () => $event->delete())->toThrow(AuditLogIsAppendOnly::class);
 });
 
 /* -- the meta JSON, which is the easy one to miss ---------------------- */
