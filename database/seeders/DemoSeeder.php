@@ -215,7 +215,7 @@ class DemoSeeder extends Seeder
                     'purchase_date' => now()->subMonths(random_int(6, 60))->toDateString(),
                     'purchase_price' => $this->priceFor($categoryName),
                     'supplier' => 'Demo Supplies sh.p.k.',
-                    'warranty_end' => now()->addDays(random_int(-400, 400))->toDateString(),
+                    'warranty_end' => now()->addDays(random_int(90, 400))->toDateString(),
                     'needs_inspection' => $needsInspection,
                     'inspection_interval_months' => $needsInspection ? ($categoryName === 'Fire safety' ? 12 : 6) : null,
                 ]);
@@ -234,6 +234,9 @@ class DemoSeeder extends Seeder
         $created->slice(0, 2)->each(fn (Asset $a) => $a->update(['status' => AssetStatus::InStorage]));
         $created->slice(2, 2)->each(fn (Asset $a) => $a->update(['status' => AssetStatus::Retired, 'disposal_date' => now()->subMonths(3)->toDateString()]));
         $created->slice(4, 1)->each(fn (Asset $a) => $a->update(['status' => AssetStatus::Lost]));
+
+        // One warranty running out, so Home shows a mix and not five of the same row.
+        $created->firstWhere('model', 'ActivPanel 75')?->update(['warranty_end' => now()->addDays(45)->toDateString()]);
 
         // Laptops travel, so they get a custodian while keeping their home room.
         $created->where('model', 'ThinkPad E14')->values()->each(

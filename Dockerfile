@@ -37,7 +37,7 @@ RUN sed -i 's/\r$//' docker/start.sh \
     && echo 'Listen ${PORT}' > /etc/apache2/ports.conf \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs storage/app/private bootstrap/cache \
     && touch database/database.sqlite \
-    && env APP_ENV=local APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" DB_CONNECTION=sqlite \
+    && env APP_NAME="Demo Gymnasium" APP_ENV=local APP_KEY="base64:$(head -c 32 /dev/urandom | base64)" DB_CONNECTION=sqlite \
         CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync LOG_CHANNEL=stderr SCHOOL_TAG_PREFIX=INV \
         sh -c 'php artisan package:discover --ansi \
             && php artisan migrate --force --seed \
@@ -46,7 +46,7 @@ RUN sed -i 's/\r$//' docker/start.sh \
             && php artisan view:cache' \
     && chown -R www-data:www-data database storage bootstrap/cache
 
-ENV APP_NAME="School Inventory" \
+ENV APP_NAME="Demo Gymnasium" \
     APP_ENV=production \
     APP_DEBUG=false \
     DB_CONNECTION=sqlite \
