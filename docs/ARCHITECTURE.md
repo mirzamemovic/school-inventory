@@ -570,7 +570,7 @@ search dropdown, serial-number check.
 
 ## 13. Testing
 
-**461 tests, Pest, all passing** (2026-10-31). 31 feature test files. Tests run
+**468 tests, Pest, all passing** (2026-10-31). 32 feature test files. Tests run
 against SQLite `:memory:` with `RefreshDatabase`; one test only runs on MySQL or
 MariaDB, so SQLite reports it as skipped. The whole suite has also been run on
 MariaDB 10.4; `HANDOFF.md` §7 has the recipe. `SecurityHardeningTest`, `InspectorPhoneTest` and `UserManagementTest` hold the
