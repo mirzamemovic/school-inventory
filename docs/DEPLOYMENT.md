@@ -102,7 +102,7 @@ Copy `.env.example` to `.env` on the server and set these.
 | `APP_ENV` | `production` | Also what stops `DemoSeeder` from running |
 | `APP_DEBUG` | `false` | A stack trace prints your database credentials on screen |
 | `APP_KEY` | generate once | See below |
-| `APP_URL` | `https://school.example` | Signed class-debt links are checked against this |
+| `APP_URL` | `https://school.example` | Goes on every QR sticker. See below |
 | `DB_CONNECTION` | `mysql` | |
 | `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | from cPanel | |
 | `SESSION_DRIVER` | `database` | |
@@ -124,9 +124,16 @@ php artisan key:generate
 If there is no SSH, run it locally against a throwaway `.env`, then copy the
 `APP_KEY=base64:…` line onto the server by hand.
 
-**`APP_URL` matters more than it looks.** The class book-debt links are signed
-against the full URL. If `APP_URL` is wrong, every link a class teacher receives
-returns *Forbidden*.
+**`APP_URL` matters more than it looks.** Every QR sticker and cupboard address
+is built from it, and nothing else: the address the site happens to be opened
+from makes no difference. A sticker cannot be updated, so set this to the final
+school-owned address, on HTTPS, before printing a single label. If it still says
+`localhost` or a temporary address, that is what goes on the stickers.
+
+Signed links work the other way round. Class book-debt links and the once-only
+setup links carry the address they were made on and are checked against it, so
+make the ones you hand out from the final address. A link made on a temporary
+address stops working when that address goes away; make a new one.
 
 ### HTTPS
 
@@ -338,6 +345,9 @@ Run through these once, in a browser that is not signed in:
 - [ ] Print one label sheet onto plain paper and hold it against a real sticker
       sheet before doing a full run — printer margins vary and being 2mm out
       ruins the sheet
+- [ ] Scan a QR on that plain-paper sheet with a phone. It must open the final
+      `https://` address. If it opens anything else, fix `APP_URL` before
+      printing any stickers
 
 Then, and only then, start entering real data.
 
