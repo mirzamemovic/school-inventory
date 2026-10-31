@@ -38,6 +38,18 @@ it('reads each row as a sentence, not a table of ids', function () {
         ->assertSee('Drita Berisha moved it from Lab 2 to Room 14');
 });
 
+it('uses the words a person reads on screen, not the stored status values', function () {
+    $asset = Asset::factory()->create();
+    $this->actingAs($this->admin);
+
+    app(AuditLogger::class)->record($asset, EventAction::ASSET_STATUS_CHANGED, [
+        'status' => ['from' => 'in_use', 'to' => 'under_repair'],
+    ]);
+
+    expect(EventSentence::for(AssetEvent::query()->firstOrFail()))
+        ->toBe('Drita Berisha changed the status from In use to Under repair');
+});
+
 it('falls back to a plain sentence for an action with no wording', function () {
     $asset = Asset::factory()->create();
     $event = app(AuditLogger::class)->record($asset, 'something.unheard_of');

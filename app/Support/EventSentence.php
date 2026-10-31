@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Enums\AssetCondition;
+use App\Enums\AssetStatus;
 use App\Models\AssetEvent;
 
 /**
@@ -36,15 +38,29 @@ final class EventSentence
             'item' => self::readable($event->meta['item'] ?? null),
         ];
 
-        foreach ((array) $event->meta as $value) {
+        foreach ((array) $event->meta as $field => $value) {
             if (is_array($value) && array_key_exists('from', $value)) {
-                $replacements['from'] = self::readable($value['from']);
-                $replacements['to'] = self::readable($value['to'] ?? null);
+                $replacements['from'] = self::readable(self::label($field, $value['from']));
+                $replacements['to'] = self::readable(self::label($field, $value['to'] ?? null));
                 break;
             }
         }
 
         return $replacements;
+    }
+
+    /** The log keeps the stored value; a person reads the word the screens use. */
+    private static function label(string|int $field, mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        return match ($field) {
+            'status' => AssetStatus::tryFrom($value)?->label(),
+            'condition' => AssetCondition::tryFrom($value)?->label(),
+            default => null,
+        } ?? $value;
     }
 
     /** A plain value, or the "to" side of a before/after pair. */
