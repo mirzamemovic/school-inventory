@@ -292,7 +292,8 @@ Break any of these and the system becomes wrong rather than merely buggy.
 2. **A reprint carries the identical tag.** A new one would sever the item from
    its history.
 3. **The QR is never stored.** Pure function of the tag, drawn on demand. No
-   `qr_path` column, no generation job.
+   `qr_path` column, no generation job. Its address comes from `APP_URL` through
+   `StickerUrl`, never from the request: a sticker cannot be updated.
 4. **The audit log is append-only.** Never updated, never deleted — including by
    erasure, which rewrites columns instead.
 5. **The public asset page is a DTO, not a model.** `PublicAssetView` carries
@@ -569,9 +570,10 @@ search dropdown, serial-number check.
 
 ## 13. Testing
 
-**445 tests, 1,547 assertions, Pest, all passing** (2026-10-01). 30 feature test
-files. Tests run against SQLite `:memory:` with `RefreshDatabase`.
-`SecurityHardeningTest`, `InspectorPhoneTest` and `UserManagementTest` hold the
+**461 tests, Pest, all passing** (2026-10-31). 31 feature test files. Tests run
+against SQLite `:memory:` with `RefreshDatabase`; one test only runs on MySQL or
+MariaDB, so SQLite reports it as skipped. The whole suite has also been run on
+MariaDB 10.4; `HANDOFF.md` §7 has the recipe. `SecurityHardeningTest`, `InspectorPhoneTest` and `UserManagementTest` hold the
 security work; `AuditCoverageTest` checks every master-data write is logged;
 `IntegrityTest` covers closed reports and assignment. The breached-password
 check is faked so the suite never leaves the machine.
@@ -642,6 +644,19 @@ Each of these was a real bug found in this codebase. Do not reintroduce them.
 18. **`php -S` with Laravel's `server.php` must run with `public/` as the
     working directory.** From the project root every request is a PHP fatal
     that curl reports as `200` with no redirect.
+19. **A `timestamp` column is not a safe place for a date that matters.** On
+    older MariaDB and MySQL the first one in a table rewrites itself on every
+    update, and every one of them stops in January 2038. SQLite builds the same
+    column for `timestamp` and `dateTime`, so no test on it can show either
+    fault. A date that must never move, or can lie far ahead, is a `dateTime`.
+20. **SQLite stores whatever it is given; MySQL refuses.** Text over the column
+    length and bytes that are not valid UTF-8 both become a 500 on MySQL and
+    pass silently on SQLite. Anything that reaches the database without form
+    validation needs its own check. The CSV import is the live example (see
+    `HANDOFF.md` §6).
+21. **On MySQL, `=`, `IN` and unique checks ignore case and accents.** With
+    `utf8mb4_unicode_ci`, "Arben" equals "Arbën". SQLite compares exactly, so a
+    test on it cannot show this.
 
 ---
 
