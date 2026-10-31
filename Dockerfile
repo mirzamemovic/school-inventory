@@ -31,7 +31,8 @@ COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 # The demo data is built into the image, so every restart begins from the same
 # clean state and no database file is uploaded from anyone's computer. It runs
 # here as non-production on purpose: DemoSeeder refuses production, and the
-# running site below is production.
+# running site below is production. Routes and views are compiled now because a
+# free server is slow, and each wipe would otherwise compile them again on camera.
 RUN sed -i 's/\r$//' docker/start.sh \
     && echo 'Listen ${PORT}' > /etc/apache2/ports.conf \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs storage/app/private bootstrap/cache \
@@ -40,7 +41,9 @@ RUN sed -i 's/\r$//' docker/start.sh \
         CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync LOG_CHANNEL=stderr SCHOOL_TAG_PREFIX=INV \
         sh -c 'php artisan package:discover --ansi \
             && php artisan migrate --force --seed \
-            && php artisan db:seed --class=DemoSeeder --force' \
+            && php artisan db:seed --class=DemoSeeder --force \
+            && php artisan route:cache \
+            && php artisan view:cache' \
     && chown -R www-data:www-data database storage bootstrap/cache
 
 ENV APP_NAME="School Inventory" \
