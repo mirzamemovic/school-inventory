@@ -63,7 +63,7 @@ it('links a license to at most one machine, and lets go when that machine is del
 });
 
 it('keeps using the one audit log rather than a second one', function () {
-    // Pinned (owner-approved, 2026-10-01): a random factory name could equal
+    // Pinned: a random factory name could equal
     // the payload's, leaving nothing to change and nothing logged, so this
     // failed about one run in sixteen.
     $license = License::factory()->create(['name' => 'A licence about to be renamed']);

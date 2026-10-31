@@ -149,5 +149,5 @@ device the director enrolled in person — before it counts.
 ## Deployment
 
 The settings that decide whether any of the above holds — document root, debug
-off, two database users, encrypted off-server backups, Laravel Boost left out —
+off, two database users, encrypted off-server backups, no development packages —
 are in `DEPLOYMENT.md`, with a checklist to run after every deploy.

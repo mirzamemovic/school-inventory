@@ -34,9 +34,8 @@ npm install
 npm run build
 ```
 
-`--no-dev` is not optional. It is what keeps development tooling — including
-**Laravel Boost**, which reads your application structure and queries the
-database — out of the release. See the checks at the end.
+`--no-dev` is not optional. It keeps development tooling out of the release.
+See the checks at the end.
 
 `npm run build` compiles CSS and JavaScript into `public/build`. **Node never
 runs on the server.** Upload the compiled output; the host needs no Node at all.
@@ -308,24 +307,17 @@ Two things worth knowing about what backups hold:
 
 ---
 
-## Confirming Laravel Boost is excluded
+## Confirming development packages are excluded
 
-Boost is a development dependency that inspects your application and queries the
-database. It must never be reachable in production.
-
-It is listed under `require-dev` in `composer.json`, so
-`composer install --no-dev` leaves it out. Verify on the server after deploying:
+Everything under `require-dev` in `composer.json` stays on your machine, and
+`composer install --no-dev` is what leaves it out. Verify on the server after
+deploying:
 
 ```bash
-ls vendor/laravel/boost            # must not exist
-php artisan list | grep boost      # must return nothing
+ls vendor/pestphp                  # must not exist
 ```
 
-If either shows something, `--no-dev` was missed. Rebuild and re-upload
-`vendor/`.
-
-Also delete or ignore `.mcp.json` and `boost.json` on the server. They are inert
-without the package, but there is no reason for them to be there.
+If it exists, `--no-dev` was missed. Rebuild and re-upload `vendor/`.
 
 ---
 

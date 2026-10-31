@@ -55,7 +55,7 @@ it('puts the school name on every page', function () {
         ->assertSee('Gjimnazi Test');
 });
 
-// Changed 2026-10-01 with the owner's approval: accounts are now managed in
+// Changed 2026-10-01: accounts are now managed in
 // the browser (Manage → Users), behind a fresh password re-entry, instead of
 // only from the command line. UserManagementTest covers the rest.
 it('lists the accounts only after the password is typed again', function () {

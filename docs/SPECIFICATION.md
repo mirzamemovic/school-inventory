@@ -1,5 +1,9 @@
 # School Inventory System — Build Specification
 
+> The brief the system was built against, kept as written. One rule changed during
+> the build: admin accounts are now managed in the browser rather than by artisan
+> command alone (§3.1). See `SECURITY.md` for what replaced it.
+
 ## 0. How to work with me on this project
 
 Read this whole file before writing any code.

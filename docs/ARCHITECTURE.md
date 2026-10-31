@@ -1,6 +1,7 @@
 # School Inventory — technical context
 
-A complete briefing on this codebase. Tables, routes, invariants and the traps already found.
+A complete briefing on this codebase: what it is, how it fits together, the
+invariants that must hold, and the traps already found.
 
 The authoritative specification is `SPECIFICATION.md` (§0–§13). Where this document and
 that one disagree, `SPECIFICATION.md` wins. Retention rules live in `RETENTION.md`,
@@ -85,7 +86,7 @@ normally, at most three active. **Every account is an admin: no roles.**
 
 - **No registration route and no "forgot password" screen** (both asserted by
   tests). Email is not configured.
-- **Accounts are managed in Manage → Users** (owner's decision of 2026-10-01,
+- **Accounts are managed in Manage → Users** (decided 2026-10-01,
   replacing spec §3.1's artisan-only rule): add, edit, reset password,
   deactivate, reactivate, change my own password. Every Users route needs the
   password typed in the last 10 minutes (`RequirePassword`, server-side).
@@ -573,7 +574,8 @@ search dropdown, serial-number check.
 **468 tests, Pest, all passing** (2026-10-31). 32 feature test files. Tests run
 against SQLite `:memory:` with `RefreshDatabase`; one test only runs on MySQL or
 MariaDB, so SQLite reports it as skipped. The whole suite has also been run on
-MariaDB 10.4; `HANDOFF.md` §7 has the recipe. `SecurityHardeningTest`, `InspectorPhoneTest` and `UserManagementTest` hold the
+MariaDB 10.4: real environment variables beat `phpunit.xml`, so pointing `DB_*` at a
+server is all it takes. `SecurityHardeningTest`, `InspectorPhoneTest` and `UserManagementTest` hold the
 security work; `AuditCoverageTest` checks every master-data write is logged;
 `IntegrityTest` covers closed reports and assignment. The breached-password
 check is faked so the suite never leaves the machine.
@@ -653,7 +655,7 @@ Each of these was a real bug found in this codebase. Do not reintroduce them.
     length and bytes that are not valid UTF-8 both become a 500 on MySQL and
     pass silently on SQLite. Anything that reaches the database without form
     validation needs its own check. The CSV import is the live example (see
-    `HANDOFF.md` §6).
+    section 15).
 21. **On MySQL, `=`, `IN` and unique checks ignore case and accents.** With
     `utf8mb4_unicode_ci`, "Arben" equals "Arbën". SQLite compares exactly, so a
     test on it cannot show this.
@@ -669,6 +671,25 @@ Each of these was a real bug found in this codebase. Do not reintroduce them.
 3. Whether a government asset register exists — `official_number` stays empty
 4. Real academic year dates — assumed to end 15 June (`config/school.php`)
 5. Photo storage quota — assumed 5MB per upload
+
+**Confirmed backlog, found in the code and not yet fixed:**
+
+- The CSV import needs Excel's "CSV UTF-8" format. Plain Excel CSV with "ë" or
+  "ç" fails partway; a semicolon-separated file becomes one student per line
+  with the whole row as a name. Convert or refuse before the first real import.
+- MySQL's `utf8mb4_unicode_ci` treats "ë" and "e" as equal, so the import can
+  skip "Arbën" as a duplicate of "Arben", and `person:erase` can reach both.
+- Roman-numeral classes ("X-1") give no grade, so the issue screen cannot
+  pre-tick that grade's books.
+- CSV export exists for the activity log only; assets, book debts and licences
+  are still to do (spec §16).
+- The report confirmation promises the reporter will hear back, but nothing
+  sends a message yet. `ReportCreated` fires and has no listener.
+- The cupboard QR is shown as a URL on the room page and cannot be printed.
+- Two simultaneous "Took some" taps can lose one withdrawal. Stock only, and
+  Recount reconciles it.
+- PHP's own upload limit is not set for shared hosting, so check it against the
+  app's 15 MB photo limit at launch.
 
 **Not built:**
 
@@ -686,7 +707,7 @@ many-to-many, mobile app, offline sync, multi-tenant, an API.
 `assets.tag_sequence`, `reports.reference`, `asset_events.ip_address`,
 `supplies.room_id`, `people.left_at`, and the `data.retention_enforced` action.
 Each exists because the specified behaviour is impossible without it. Plus,
-approved by the owner on 2026-10-01: `users.deactivated_at`,
+added 2026-10-01: `users.deactivated_at`,
 `users.password_set_at`, `users.last_login_at` and web account management.
 
 ---
@@ -699,5 +720,4 @@ approved by the owner on 2026-10-01: `users.deactivated_at`,
 - Run `php artisan test` before and after any change.
 - `npm run build` after touching a Blade file that uses a new Tailwind class.
 - `./vendor/bin/pint` before finishing.
-- The project is a git repository; see `HANDOFF.md` for how commits are made.
 - Timezone is `Europe/Belgrade` (Kosovo); times are stored as written in it.
