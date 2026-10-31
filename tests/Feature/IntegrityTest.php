@@ -10,6 +10,7 @@ use App\Models\Person;
 use App\Models\Report;
 use App\Models\User;
 use App\Support\EventAction;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 /*
@@ -70,6 +71,13 @@ it('still lets an open or in-progress report be worked on and closed', function 
     $this->post(route('admin.reports.resolve', $report))->assertSessionHasNoErrors();
     expect($report->fresh()->status)->toBe(ReportStatus::Resolved);
 });
+
+it('keeps the database server clock out of every time it stores', function () {
+    expect(DB::selectOne('select @@session.time_zone as zone')->zone)->toBe('+00:00');
+})->skip(
+    fn () => ! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true),
+    'Only MySQL and MariaDB have a session clock.',
+);
 
 it('announces a new report once it is saved', function () {
     Event::fake([ReportCreated::class]);
